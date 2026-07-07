@@ -5,7 +5,7 @@ PAPERS_DIR = ROOT / "data" / "papers"
 CHROMA_DIR = ROOT / "data" / "chroma"
 
 COLLECTION = "sciencefit"
-LLM_MODEL = "llama3.1"
+LLM_MODEL = "llama3.2:3b" # llama3.1 was too heavy to use on local machine
 EMBED_MODEL = "nomic-embed-text"
 
 CHUNK_SIZE = 800
