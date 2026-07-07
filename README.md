@@ -51,6 +51,8 @@ ollama serve &
 # Open a new terminal and Pull models
 ollama pull llama3.1
 ollama pull nomic-embed-text
+ollama list # both should show in the list
+
 
 # Python env
 python -m venv .venv
