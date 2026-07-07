@@ -38,7 +38,7 @@ The LLM never sees all papers — only the top-k chunks the retriever picks. Swa
 ## Setup
 
 ```bash
-git clone https://github.com/<your-username>/ScienceFit.git
+git clone https://github.com/rbhaskar-kosuru/ScienceFit.git
 cd ScienceFit
 
 # Ollama models (one-time)
