@@ -46,8 +46,9 @@ cd ScienceFit
 # Linux:   curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download from https://ollama.com/download
 
-# Start Ollama and pull models
+# Start Ollama 
 ollama serve &
+# Open a new terminal and Pull models
 ollama pull llama3.1
 ollama pull nomic-embed-text
 
