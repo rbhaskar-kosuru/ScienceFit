@@ -1,61 +1,132 @@
 # ScienceFit
 
-RAG chatbot answering resistance-training questions from peer-reviewed research with citations.
+A RAG chatbot that answers resistance-training questions grounded in peer-reviewed research, with inline citations to the source papers.
+
+No bro-science. No YouTube guesses. Just retrieval over curated studies.
+
+## Why
+
+Most fitness chatbots coach behavior. None retrieve from actual research papers and cite them back. ScienceFit fills that gap: ask a question, get an answer traceable to the study it came from.
+
+## How it works
+
+```
+question → embed → similarity search (Chroma)
+        → top-k paper chunks → LLM (Ollama)
+        → answer with [paper_id] citations
+```
+
+The LLM never sees all papers — only the top-k chunks the retriever picks. Swap the LLM without touching the retriever.
 
 ## Stack
 
-- **LLM & embeddings**: Ollama (`llama3.1`, `nomic-embed-text`)
-- **Vector DB**: Chroma (local, persistent)
-- **Backend**: FastAPI
-- **Frontend**: Streamlit
+| Layer      | Tool                                  |
+|------------|---------------------------------------|
+| LLM        | Ollama (`llama3.1`) — local, free     |
+| Embeddings | Ollama (`nomic-embed-text`)           |
+| Vector DB  | Chroma (persistent, local)            |
+| Backend    | FastAPI                               |
+| Frontend   | Streamlit                             |
+| PDF parse  | pypdf                                 |
 
-## Setup (MacBook Pro M3)
+## Prerequisites
+
+- Python 3.10+
+- [Ollama](https://ollama.com) installed and running
+- ~20 research PDFs on resistance training (curated, not scraped)
+
+## Setup
 
 ```bash
-# 1. Install Ollama, then pull models
-brew install ollama
-ollama serve &
+git clone https://github.com/<your-username>/ScienceFit.git
+cd ScienceFit
+
+# Ollama models (one-time)
 ollama pull llama3.1
 ollama pull nomic-embed-text
 
-# 2. Python env
+# Python env
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# 3. Drop your ~20 curated PDFs into data/papers/
-
-# 4. Ingest
-python -m src.ingest
-
-# 5. Run API (terminal 1)
-uvicorn src.api:app --reload
-
-# 6. Run UI (terminal 2)
-streamlit run app.py
 ```
 
-## Project layout
+## Usage
+
+1. **Drop PDFs** into `data/papers/`. Filename becomes the citation key, e.g. `schoenfeld_2017.pdf` → `[schoenfeld_2017]`.
+
+2. **Ingest** — chunk, embed, store in Chroma:
+   ```bash
+   python -m src.ingest
+   ```
+
+3. **Run API** (terminal 1):
+   ```bash
+   uvicorn src.api:app --reload
+   ```
+
+4. **Run UI** (terminal 2):
+   ```bash
+   streamlit run app.py
+   ```
+
+Open the Streamlit URL and ask something like *"What's the optimal weekly set volume for hypertrophy?"*
+
+### API only
+
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "optimal reps for hypertrophy?", "top_k": 5}'
+```
+
+## Project structure
 
 ```
-sciencefit/
-├── app.py              # Streamlit UI
+ScienceFit/
+├── app.py                # Streamlit UI
 ├── requirements.txt
 ├── data/
-│   ├── papers/         # your PDFs go here
-│   └── chroma/         # auto-created vector store
+│   ├── papers/           # your PDFs (gitignored)
+│   └── chroma/           # vector store (gitignored)
 └── src/
-    ├── config.py       # paths, model names, chunk sizes
-    ├── ingest.py       # PDF → chunks → embeddings → Chroma
-    ├── rag.py          # retrieve + generate with citations
-    └── api.py          # FastAPI endpoints
+    ├── config.py         # paths, models, chunk sizes
+    ├── ingest.py         # PaperLoader, Chunker, VectorStore
+    ├── rag.py            # RAG: retrieve → prompt → generate
+    └── api.py            # FastAPI endpoints
 ```
 
-## Next steps
+## Configuration
 
-1. Get MVP working end-to-end with 20 papers.
-2. Add conversational memory (store chat history, pass previous turns).
-3. Build scraper for PubMed / Google Scholar with quality gate.
-4. Dockerize.
-5. Deploy backend on Railway, frontend on Streamlit Cloud or Vercel.
-6. (Optional) Swap Ollama → Claude API by changing `_generate` in `rag.py`.
+Tune in `src/config.py`:
+
+| Setting         | Default              | Notes                              |
+|-----------------|----------------------|------------------------------------|
+| `LLM_MODEL`     | `llama3.1`           | Any Ollama model                   |
+| `EMBED_MODEL`   | `nomic-embed-text`   | Must match at ingest and query time|
+| `CHUNK_SIZE`    | 800                  | Characters per chunk               |
+| `CHUNK_OVERLAP` | 150                  | Preserves context across splits    |
+| `TOP_K`         | 5                    | Chunks passed to LLM               |
+
+## Swapping the LLM
+
+To use Claude, GPT-4, or any hosted model, change `_generate` in `src/rag.py`. The retriever stays the same.
+
+## Roadmap
+
+- [x] MVP: RAG over ~20 curated papers with citations
+- [ ] Conversational memory (multi-turn)
+- [ ] PubMed / Google Scholar scraper with quality gate
+- [ ] Dockerize
+- [ ] Deploy: Railway (API) + Streamlit Cloud (UI)
+- [ ] Evaluation harness (retrieval precision, answer faithfulness)
+
+## Notes
+
+- Answers are only as good as the papers you feed it. Curate carefully.
+- The LLM can still misinterpret excerpts. Citations let users verify.
+- Not medical or professional advice.
+
+## License
+
+MIT
