@@ -41,7 +41,13 @@ The LLM never sees all papers — only the top-k chunks the retriever picks. Swa
 git clone https://github.com/rbhaskar-kosuru/ScienceFit.git
 cd ScienceFit
 
-# Ollama models (one-time)
+# Install Ollama (one-time)
+# macOS:   brew install ollama
+# Linux:   curl -fsSL https://ollama.com/install.sh | sh
+# Windows: download from https://ollama.com/download
+
+# Start Ollama and pull models
+ollama serve &
 ollama pull llama3.1
 ollama pull nomic-embed-text
 
@@ -112,20 +118,14 @@ Tune in `src/config.py`:
 
 To use Claude, GPT-4, or any hosted model, change `_generate` in `src/rag.py`. The retriever stays the same.
 
-## Roadmap
-
-- [x] MVP: RAG over ~20 curated papers with citations
-- [ ] Conversational memory (multi-turn)
-- [ ] PubMed / Google Scholar scraper with quality gate
-- [ ] Dockerize
-- [ ] Deploy: Railway (API) + Streamlit Cloud (UI)
-- [ ] Evaluation harness (retrieval precision, answer faithfulness)
 
 ## Notes
 
 - Answers are only as good as the papers you feed it. Curate carefully.
+- Papers I personally curated are used for research/educational purposes, not redistributed.
 - The LLM can still misinterpret excerpts. Citations let users verify.
 - Not medical or professional advice.
+
 
 ## License
 
