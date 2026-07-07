@@ -20,14 +20,14 @@ The LLM never sees all papers — only the top-k chunks the retriever picks. Swa
 
 ## Stack
 
-| Layer      | Tool                                  |
-|------------|---------------------------------------|
-| LLM        | Ollama (`llama3.1`) — local, free     |
-| Embeddings | Ollama (`nomic-embed-text`)           |
-| Vector DB  | Chroma (persistent, local)            |
-| Backend    | FastAPI                               |
-| Frontend   | Streamlit                             |
-| PDF parse  | pypdf                                 |
+| Layer      | Tool                                 |
+|------------|--------------------------------------|
+| LLM        | Ollama (`llama3.2:3B`) — local, free |
+| Embeddings | Ollama (`nomic-embed-text`)          |
+| Vector DB  | Chroma (persistent, local)           |
+| Backend    | FastAPI                              |
+| Frontend   | Streamlit                            |
+| PDF parse  | pypdf                                |
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ cd ScienceFit
 # Start Ollama 
 ollama serve &
 # Open a new terminal and Pull models
-ollama pull llama3.1
+ollama pull llama3.2:3b
 ollama pull nomic-embed-text
 ollama list # both should show in the list
 
