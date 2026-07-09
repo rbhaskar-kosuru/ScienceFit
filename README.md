@@ -33,7 +33,7 @@ The LLM never sees all papers — only the top-k chunks the retriever picks. Swa
 
 - Python 3.10+
 - [Ollama](https://ollama.com) installed and running
-- ~20 research PDFs on resistance training (curated, not scraped)
+- ~20 research PDFs on resistance training (curated, not just scraped)
 
 ## Setup
 
