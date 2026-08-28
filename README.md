@@ -22,7 +22,7 @@ The LLM never sees all papers — only the top-k chunks the retriever picks. Swa
 
 | Layer      | Tool                                 |
 |------------|--------------------------------------|
-| LLM        | Ollama (`llama3.2:3B`) — local, free |
+| LLM        | Ollama (`llama3.2:3b`) — local, free |
 | Embeddings | Ollama (`nomic-embed-text`)          |
 | Vector DB  | Chroma (persistent, local)           |
 | Backend    | FastAPI                              |
@@ -62,7 +62,13 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. **Drop PDFs** into `data/papers/`. Filename becomes the citation key, e.g. `schoenfeld_2017.pdf` → `[schoenfeld_2017]`.
+1. **Curate papers** (optional — auto-fetches open-access PDFs):
+```bash
+   python -m src.curate
+```
+   Searches OpenAlex, scores papers on citations/design/journal quality, applies a relevance gate, ranks the top 20, and downloads open-access PDFs to `data/papers/`. Writes `curation_manifest.json` as an audit trail.
+
+   Or **drop PDFs manually** into `data/papers/`. Filename becomes the citation key, e.g. `schoenfeld_2017.pdf` → `[schoenfeld_2017]`.
 
 2. **Ingest** — chunk, embed, store in Chroma:
    ```bash
@@ -98,24 +104,24 @@ ScienceFit/
 ├── data/
 │   ├── papers/           # your PDFs (gitignored)
 │   └── chroma/           # vector store (gitignored)
-└── src/
-    ├── config.py         # paths, models, chunk sizes
-    ├── ingest.py         # PaperLoader, Chunker, VectorStore
-    ├── rag.py            # RAG: retrieve → prompt → generate
-    └── api.py            # FastAPI endpoints
-```
+└── └── src/
+        ├── config.py         # paths, models, chunk sizes
+        ├── curate.py         # OpenAlex search → score → rank → download PDFs
+        ├── ingest.py         # PaperLoader, Chunker, VectorStore
+        ├── rag.py            # RAG: retrieve → prompt → generate
+        └── api.py            # FastAPI endpoints
 
 ## Configuration
 
 Tune in `src/config.py`:
 
-| Setting         | Default              | Notes                              |
-|-----------------|----------------------|------------------------------------|
-| `LLM_MODEL`     | `llama3.1`           | Any Ollama model                   |
-| `EMBED_MODEL`   | `nomic-embed-text`   | Must match at ingest and query time|
-| `CHUNK_SIZE`    | 800                  | Characters per chunk               |
-| `CHUNK_OVERLAP` | 150                  | Preserves context across splits    |
-| `TOP_K`         | 5                    | Chunks passed to LLM               |
+| Setting         | Default            | Notes                              |
+|-----------------|--------------------|------------------------------------|
+| `LLM_MODEL`     | `llama3.2:3b`      | Any Ollama model                   |
+| `EMBED_MODEL`   | `nomic-embed-text` | Must match at ingest and query time|
+| `CHUNK_SIZE`    | 800                | Characters per chunk               |
+| `CHUNK_OVERLAP` | 150                | Preserves context across splits    |
+| `TOP_K`         | 5                  | Chunks passed to LLM               |
 
 ## Swapping the LLM
 
