@@ -1,0 +1,18 @@
+# Data — keep folder structure, ignore contents
+data/papers/*
+data/chroma/*
+!data/papers/.gitkeep
+!data/chroma/.gitkeep
+data/curation_manifest.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
