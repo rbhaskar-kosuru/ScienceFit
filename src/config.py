@@ -46,7 +46,7 @@ CURATE_QUERIES = [  # several angles so volume, frequency, load, etc. are all co
     "creatine resistance training",
 ]
 CURATE_CANDIDATES = 1000           # total pulled from OpenAlex, split evenly across queries
-CURATE_TARGET_PDFS = 20            # download in rank order until this many valid PDFs
+CURATE_TARGET_PDFS = 20            # new PDFs downloaded per run, best first; not a cap on the library
 CURATE_MIN_SCORE = 0.65            # 0-1 quality cutoff before download; None = no cut
 CURATE_FROM_YEAR = 2005
 CURATE_MAX_DOWNLOAD_ATTEMPTS = 100 # safety cap on papers tried

@@ -4,6 +4,7 @@ data/chroma/*
 !data/papers/.gitkeep
 !data/chroma/.gitkeep
 data/curation_manifest.json
+data/curation_manifest.tmp
 
 # Python
 __pycache__/

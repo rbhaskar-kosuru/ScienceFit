@@ -28,6 +28,9 @@ NO_EVIDENCE = (
 )
 
 CITATION = re.compile(r"\[([^\[\]]+)\](?!\()")  # [tag] but not markdown links [text](url)
+PAPER_ID = re.compile(r"[a-z][a-z0-9]*_\d{4}[a-z]?")  # citation_key() shape: cribb_2007, schoenfeld_2017b
+AUTHOR_CITATION = re.compile(r"[A-Z][\w'’-]+.*(?:\bet al\b|\b(?:19|20)\d{2}[a-z]?\b)")  # [Cribb et al.], [Smith 2019]
+NOT_CITATION = re.compile(r"[<>=%±]")  # statistics: [P < 0.05], [n = 12], [95% CI 1.1–2.3]
 SOURCE_FIELDS = ("title", "first_author", "year", "journal", "doi", "design", "curated")
 
 
@@ -75,14 +78,18 @@ def describe(meta: dict) -> str:
 
 
 def validate_citations(answer: str, allowed: set[str]) -> tuple[set[str], list[str]]:
-    """Split [tags] in the answer into real retrieved paper IDs and invented ones."""
+    """Split citations into retrieved paper IDs and unverified ones. Paper IDs not retrieved and author-style
+    citations ([Cribb et al.], [Smith 2019]) are unverified; brackets that aren't citations ([P < 0.05]) are ignored."""
     cited, unverified = set(), []
     for group in CITATION.findall(answer):
-        for tag in re.split(r"[;,]", group):
-            tag = tag.strip().removeprefix("paper_id:").strip()
-            if tag in allowed:
+        tags = [t.strip().removeprefix("paper_id:").strip() for t in re.split(r"[;,]", group)]
+        if not any(PAPER_ID.fullmatch(t) for t in tags):
+            tags = [group.strip()]  # keep "[Smith and Jones, 2018]" whole instead of splitting at the comma
+        for tag in tags:
+            if PAPER_ID.fullmatch(tag) and tag in allowed:
                 cited.add(tag)
-            elif tag and tag not in unverified:
+            elif (PAPER_ID.fullmatch(tag) or (AUTHOR_CITATION.search(tag) and not NOT_CITATION.search(tag))) \
+                    and tag not in unverified:
                 unverified.append(tag)
     return cited, unverified
 

@@ -1,10 +1,13 @@
-"""Curation: OpenAlex search → open-access + relevance gate → score → cutoff → download PDFs in rank order → manifest."""
+"""Curation: new OpenAlex candidates + every paper already in the manifest → relevance gate → score → cutoff
+→ download new PDFs in rank order → manifest listing every judged paper as included or excluded (with the reason)."""
 import re
+import sys
 import math
 import time
 import argparse
 import unicodedata
 from datetime import date
+from pathlib import Path
 from urllib.parse import urlparse
 from dataclasses import dataclass, asdict, field
 
@@ -90,6 +93,8 @@ class Paper:
     score: float = 0.0
     paper_id: str = ""
     pdf_file: str | None = None
+    included: bool = False
+    reason: str | None = None  # why it's excluded; None when included
     text: str = field(default="", repr=False)
 
     def key(self) -> str:
@@ -116,14 +121,9 @@ class OpenAlexClient:
             params = {
                 "search": query,
                 "filter": f"from_publication_date:{from_year}-01-01,type:article|review,is_oa:true",
-                "select": FIELDS,
                 "per-page": per_page,
                 "page": page,
             }
-            if self.mailto:
-                params["mailto"] = self.mailto  # OpenAlex "polite pool"
-            if self.api_key:
-                params["api_key"] = self.api_key
             batch = self._get(params).get("results", [])
             results.extend(batch)
             if len(batch) < per_page:
@@ -136,7 +136,23 @@ class OpenAlexClient:
         per_query = math.ceil(total / len(queries))
         return [raw for q in queries for raw in self.search(q, n=per_query)]
 
+    def fetch_known(self, records: list[dict], batch: int = 50) -> list[dict]:
+        """Re-fetch manifest papers by DOI (OpenAlex ID if no DOI) so citations are current. No OA/type/year filter."""
+        dois = [r["doi"] for r in records if r.get("doi")]
+        oa_ids = [r["openalex_id"].rsplit("/", 1)[-1] for r in records if not r.get("doi") and r.get("openalex_id")]
+        results = []
+        for key, values in (("doi", dois), ("openalex", oa_ids)):
+            for i in range(0, len(values), batch):
+                params = {"filter": f"{key}:" + "|".join(values[i:i + batch]), "per-page": batch}
+                results.extend(self._get(params).get("results", []))
+        return results
+
     def _get(self, params: dict, retries: int = 4) -> dict:
+        params = {**params, "select": FIELDS}
+        if self.mailto:
+            params["mailto"] = self.mailto  # OpenAlex "polite pool"
+        if self.api_key:
+            params["api_key"] = self.api_key
         for attempt in range(retries):
             r = self.session.get(OPENALEX, params=params, timeout=30)
             if r.status_code == 429 or r.status_code >= 500:
@@ -221,26 +237,21 @@ class RelevanceFilter:
         self.clinical = term_pattern(clinical)
 
     def apply(self, papers: list[Paper]) -> list[Paper]:
-        return [p for p in papers if self._relevant(p)]
+        return [p for p in papers if self.relevant(p)]
 
-    def _relevant(self, p: Paper) -> bool:
+    def relevant(self, p: Paper) -> bool:
         return bool(self.domain.search(p.text)) and not self.clinical.search(p.text)
 
 
 class Scorer:
-    def __init__(self, weights: dict = WEIGHTS, citation_cap: float = config.CITATION_CAP,
-                 min_score: float | None = config.CURATE_MIN_SCORE):
+    def __init__(self, weights: dict = WEIGHTS, citation_cap: float = config.CITATION_CAP):
         self.weights = weights
         self.citation_cap = citation_cap
-        self.min_score = min_score
 
     def score_all(self, papers: list[Paper]) -> list[Paper]:
-        valid = [p for p in papers if not p.retracted]
-        for p in valid:
+        for p in papers:
             p.score = round(self._score(p), 4)
-        if self.min_score is not None:
-            valid = [p for p in valid if p.score >= self.min_score]
-        return sorted(valid, key=lambda p: p.score, reverse=True)
+        return sorted(papers, key=lambda p: p.score, reverse=True)
 
     def _score(self, p: Paper) -> float:
         # Fixed log scale, not relative to the pool, so a score means the same thing on every run.
@@ -264,9 +275,9 @@ class Scorer:
 class IdAssigner:
     """Readable, stable citation keys: schoenfeld_2017, schoenfeld_2017b, ... Same paper keeps its ID across runs."""
 
-    def __init__(self, existing: dict[str, str]):
+    def __init__(self, existing: dict[str, str], taken: set[str] = frozenset()):
         self.existing = existing  # paper key (DOI or OpenAlex ID) -> paper_id
-        self.taken = set(existing.values())
+        self.taken = set(existing.values()) | set(taken)  # also PDF names on disk, so a new ID never hits a manual file
 
     def assign(self, p: Paper) -> str:
         if p.key() in self.existing:
@@ -291,6 +302,11 @@ def _ascii(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
 
 
+def record_key(record: dict) -> str:
+    """Same key as Paper.key(), for manifest records."""
+    return (record.get("doi") or record.get("openalex_id") or record.get("title", "")).lower()
+
+
 def dedupe(papers: list[Paper]) -> list[Paper]:
     seen, unique = set(), []
     for p in papers:
@@ -298,6 +314,13 @@ def dedupe(papers: list[Paper]) -> list[Paper]:
             seen.add(p.key())
             unique.append(p)
     return unique
+
+
+def valid_pdf(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    with path.open("rb") as f:
+        return f.read(5) == b"%PDF-"
 
 
 class PDFDownloader:
@@ -309,30 +332,9 @@ class PDFDownloader:
         self.host_delay = host_delay  # seconds between hits on the same host; publishers block bursts
         self.last_hit: dict[str, float] = {}
 
-    def download_until(self, papers: list[Paper], target: int, assign_id,
-                       max_attempts: int = config.CURATE_MAX_DOWNLOAD_ATTEMPTS) -> list[Paper]:
-        """Walk papers in rank order until `target` valid PDFs. IDs are assigned only to papers we try."""
-        got, attempts = [], 0
-        for p in papers:
-            if len(got) >= target or attempts >= max_attempts:
-                break
-            attempts += 1
-            p.paper_id = assign_id(p)
-            reason = self._fetch(p)
-            if reason:
-                print(f"  skip {p.paper_id}: {reason}")
-            else:
-                got.append(p)
-        if len(got) < target:
-            print(f"Warning: only {len(got)}/{target} PDFs after {attempts} attempts.")
-        return got
-
-    def _fetch(self, p: Paper) -> str | None:
+    def fetch(self, p: Paper) -> str | None:
         """Try each PDF link in turn. Returns None on success, else why the last link failed."""
         target = self.out_dir / f"{p.paper_id}.pdf"
-        if target.exists():
-            p.pdf_file = target.name
-            return None
         reason = "no PDF link"
         for url in p.pdf_urls:
             self._wait(url)
@@ -359,47 +361,103 @@ class PDFDownloader:
         self.last_hit[host] = time.monotonic()
 
 
+def judge(ranked: list[Paper], target: int, cutoff: float | None, fetch, assign_id,
+          papers_dir: Path = config.PAPERS_DIR, max_attempts: int = config.CURATE_MAX_DOWNLOAD_ATTEMPTS) -> int:
+    """Walk papers best-first and set `included`/`reason` on each. Included = passes the gate and cutoff and has
+    a valid PDF; the library has no size cap. PDFs already on disk are reused, and up to `target` new ones are
+    downloaded. `fetch=None` downloads nothing. Returns the number of download attempts."""
+    gate, downloaded, attempts = RelevanceFilter(), 0, 0
+    for p in ranked:
+        p.included, p.reason = False, None
+        if p.paper_id and valid_pdf(papers_dir / f"{p.paper_id}.pdf"):
+            p.pdf_file = f"{p.paper_id}.pdf"
+        if p.retracted:
+            p.reason = "retracted"
+        elif not gate.relevant(p):
+            p.reason = "failed relevance gate"
+        elif cutoff is not None and p.score < cutoff:
+            p.reason = f"score {p.score:.3f} below {cutoff}"
+        elif p.pdf_file:
+            p.included = True
+        elif fetch is None:
+            p.reason = "no PDF on disk (not downloaded)"
+        elif downloaded >= target:
+            p.reason = f"download target of {target} reached"
+        elif attempts >= max_attempts:
+            p.reason = "download attempt cap reached"
+        else:
+            attempts += 1
+            p.paper_id = p.paper_id or assign_id(p)  # IDs only for papers we actually try
+            error = fetch(p)
+            if error:
+                p.reason = f"no valid PDF ({error})"
+                print(f"  skip {p.paper_id}: {error}")
+            else:
+                p.included = True
+                downloaded += 1
+    if fetch is not None and downloaded < target:
+        print(f"Warning: only {downloaded}/{target} new PDFs downloaded after {attempts} attempts.")
+    return attempts
+
+
 def curate(queries: list[str], candidates: int = config.CURATE_CANDIDATES, target: int = config.CURATE_TARGET_PDFS,
-           download: bool = True) -> list[Paper]:
-    raw = OpenAlexClient().search_many(queries, total=candidates)
-    parser = PaperParser()
-    papers = dedupe([parser.parse(r) for r in raw])
-    print(f"Fetched: {len(raw)} results, {len(papers)} unique.")
-    papers = [p for p in papers if p.is_oa and p.pdf_urls]
-    print(f"Open access with a PDF link: {len(papers)}.")
-    relevant = RelevanceFilter().apply(papers)
-    print(f"Relevance gate: {len(relevant)}/{len(papers)} passed.")
-    ranked = Scorer().score_all(relevant)
-    cutoff = config.CURATE_MIN_SCORE
-    print(f"Ranked: {len(ranked)}" + (f" with score >= {cutoff}." if cutoff is not None else " (no min score set)."))
-    if not download:
-        return ranked  # rank only: no IDs, no files, manifest untouched
+           download: bool = True, search: bool = True, save: bool = True, client: OpenAlexClient | None = None,
+           papers_dir: Path = config.PAPERS_DIR, manifest_path: Path = config.MANIFEST_PATH) -> list[Paper]:
+    """Judge new candidates (if `search`) and every manifest paper together. The manifest is written (if `save`)
+    only at the very end, so any error before that leaves the previous one in place."""
+    client, parser = client or OpenAlexClient(), PaperParser()
+    old = manifest.load(manifest_path)
+    known = [parser.parse(r) for r in client.fetch_known(old)]
+    print(f"Manifest papers re-fetched: {len(known)}/{len(old)}.")
+    fresh = []
+    if search:
+        raw = client.search_many(queries, total=candidates)
+        fresh = [p for p in (parser.parse(r) for r in raw) if p.is_oa and p.pdf_urls]
+        print(f"New candidates: {len(raw)}, {len(fresh)} open access with a PDF link.")
 
-    old = manifest.load()
-    ids = IdAssigner({(r.get("doi") or r.get("openalex_id") or r.get("title", "")).lower(): r["paper_id"] for r in old})
-    got = PDFDownloader().download_until(ranked, target, ids.assign)
-    print(f"PDFs: {len(got)}/{target}.")
+    ids = IdAssigner({record_key(r): r["paper_id"] for r in old}, taken={f.stem for f in papers_dir.glob("*.pdf")})
+    papers = dedupe(known + fresh)
+    for p in papers:
+        p.paper_id = ids.existing.get(p.key(), "")
+    ranked = Scorer().score_all(papers)
+    fetch = PDFDownloader(papers_dir).fetch if download else None
+    attempts = judge(ranked, target, config.CURATE_MIN_SCORE, fetch, ids.assign, papers_dir)
 
-    # Only papers with a PDF are kept, so paywalled entries from older runs drop out too.
-    records = [r for r in manifest.merge(old, [p.to_record() for p in got]) if r.get("pdf_file")]
-    manifest.save(records)
-    print(f"Manifest: {config.MANIFEST_PATH} ({len(records)} papers)")
-    return got
+    listed = [p for p in ranked if p.paper_id]  # manifest papers + every paper we tried to download
+    found = {p.key() for p in known}
+    missing = [{**r, "included": False, "reason": "not found in OpenAlex"} for r in old if record_key(r) not in found]
+    records = sorted([p.to_record() for p in listed] + missing, key=lambda r: (not r["included"], -r.get("score", 0)))
+    n_in = sum(r["included"] for r in records)
+    print(f"Judged {len(papers)} papers, {attempts} download attempts. Included: {n_in}. Excluded: {len(records) - n_in}.")
+    if not save:
+        print("Dry run: manifest untouched.")
+        return listed
+    manifest.save(records, manifest_path)
+    print(f"Manifest: {manifest_path} ({len(records)} papers)")
+    return listed
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Curate resistance-training papers from OpenAlex.")
     ap.add_argument("query", nargs="?", help="single search query (default: config.CURATE_QUERIES)")
     ap.add_argument("--candidates", type=int, default=config.CURATE_CANDIDATES, help="papers to fetch from OpenAlex")
-    ap.add_argument("--target", type=int, default=config.CURATE_TARGET_PDFS, help="valid PDFs to download")
-    ap.add_argument("--no-download", action="store_true", help="rank only: no downloads, manifest untouched")
+    ap.add_argument("--target", type=int, default=config.CURATE_TARGET_PDFS, help="new PDFs to download this run")
+    ap.add_argument("--no-download", action="store_true", help="dry run: no downloads, manifest untouched")
+    ap.add_argument("--rejudge", action="store_true",
+                    help="no search or downloads: re-fetch manifest papers, re-score, update included flags")
     args = ap.parse_args()
 
     queries = [args.query] if args.query else config.CURATE_QUERIES
-    papers = curate(queries, candidates=args.candidates, target=args.target, download=not args.no_download)
-    for i, p in enumerate(papers[:args.target], 1):
-        pdf = "PDF" if p.pdf_file else "   "
-        print(f"{i:2d}. [{p.score:.3f}] {pdf} {p.paper_id:22s} {p.design:16s} {p.title[:60]}")
+    try:
+        papers = curate(queries, candidates=args.candidates, target=args.target,
+                        download=not (args.no_download or args.rejudge), search=not args.rejudge,
+                        save=not args.no_download)
+    except Exception as e:
+        print(f"Curation failed ({type(e).__name__}: {e}). Previous manifest kept.", file=sys.stderr)
+        sys.exit(1)
+    for p in papers:
+        status = "IN " if p.included else "out"
+        print(f"{status} [{p.score:.3f}] {p.paper_id:22s} {p.title[:55]:55s} {p.reason or ''}")
 
 
 if __name__ == "__main__":

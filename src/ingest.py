@@ -1,4 +1,7 @@
-"""Ingest: PDFs → chunks → embeddings → Chroma, with curation metadata on every chunk."""
+"""Ingest: included manifest papers → strip front matter and references → chunks → embeddings → Chroma.
+
+Always rebuilds from scratch into a staging collection, then swaps it in, so a failed run keeps the old index.
+"""
 import re
 import logging
 import argparse
@@ -15,6 +18,27 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)  # silences malformed-PDF noi
 
 META_FIELDS = ("title", "first_author", "year", "journal", "doi", "design", "score", "citations_per_year")
 
+# Section headings as they come out of pypdf: on their own line, maybe after a line or section number.
+FRONT_END = re.compile(r"^\s*(?:abstract|summary)\b", re.I | re.M)
+REFERENCES = re.compile(r"^\s*(?:\d+\.?\s*)?(?:references|bibliography|literature cited|reference list)\b", re.I | re.M)
+# Author manuscripts put tables and figures after the references; those are kept.
+AFTER_REFERENCES = re.compile(r"^\s*(?:\d+\s+)?(?:table|figure|fig\.|appendix|supplementary)\s*[a-z]?\d*\b", re.I | re.M)
+
+
+def split_sections(text: str) -> tuple[str, str, str]:
+    """(front matter, body, references). Front matter is everything before an Abstract/Summary heading in the
+    first quarter; with no such heading (e.g. Frontiers) nothing is cut, so an unlabelled abstract survives.
+    References start at the first such heading in the second half and run to the next table/figure/appendix."""
+    n = len(text)
+    front = FRONT_END.search(text, 0, n // 4)
+    start = front.start() if front else 0
+    refs = REFERENCES.search(text, max(start, n // 2))
+    if not refs:
+        return text[:start], text[start:], ""
+    after = AFTER_REFERENCES.search(text, refs.end())
+    end = after.start() if after else n
+    return text[:start], text[start:refs.start()] + text[end:], text[refs.start():end]
+
 
 class Chunker:
     def __init__(self, size: int = config.CHUNK_SIZE, overlap: int = config.CHUNK_OVERLAP):
@@ -30,22 +54,30 @@ class Chunker:
 
 
 class PaperLoader:
-    """Yields (paper_id, text, metadata). Curated PDFs get manifest metadata; manual PDFs use the filename."""
+    """Yields (paper_id, body text, metadata) for papers the manifest marks as included."""
 
     def __init__(self, papers_dir: Path = config.PAPERS_DIR, records: list[dict] | None = None):
         self.papers_dir = papers_dir
-        self.by_file = manifest.by_file(manifest.load() if records is None else records)
+        self.records = manifest.load() if records is None else records
 
     def load(self) -> Iterator[tuple[str, str, dict]]:
-        for pdf in sorted(self.papers_dir.glob("*.pdf")):
-            record = self.by_file.get(pdf.name)
-            paper_id = record["paper_id"] if record else pdf.stem
-            yield paper_id, self._extract(pdf), self._meta(record, pdf)
+        for r in sorted(manifest.included(self.records), key=lambda r: r["paper_id"]):
+            pdf = self.papers_dir / (r.get("pdf_file") or "")
+            if not pdf.is_file():
+                print(f"Warning: {r['paper_id']} is included but {pdf.name or 'its PDF'} is missing; skipped.")
+                continue
+            yield r["paper_id"], split_sections(self._extract(pdf))[1], self._meta(r)
+
+    def warnings(self) -> list[str]:
+        """Excluded manifest papers and PDFs the manifest doesn't know about. Neither is ingested."""
+        lines = [f"  excluded {r['paper_id']}: {r.get('reason') or 'not judged yet (run curate)'}"
+                 for r in manifest.excluded(self.records)]
+        listed = {r.get("pdf_file") for r in self.records}
+        lines += [f"  not in manifest: {pdf.name}" for pdf in sorted(self.papers_dir.glob("*.pdf")) if pdf.name not in listed]
+        return lines
 
     @staticmethod
-    def _meta(record: dict | None, pdf: Path) -> dict:
-        if not record:
-            return {"title": pdf.stem, "curated": False}
+    def _meta(record: dict) -> dict:
         meta = {k: record[k] for k in META_FIELDS if record.get(k) not in (None, "")}  # Chroma rejects None
         return {**meta, "curated": True}
 
@@ -63,17 +95,24 @@ def embed(texts: list[str]) -> list[list[float]]:
 
 
 class VectorStore:
-    def __init__(self, path: Path = config.CHROMA_DIR, reset: bool = False):
+    def __init__(self, path: Path = config.CHROMA_DIR, name: str = config.COLLECTION, reset: bool = False):
         self.client = chromadb.PersistentClient(path=str(path))
+        self.name = name
         if reset:
-            self._drop()
-        self.collection = self.client.get_or_create_collection(config.COLLECTION, metadata={"hnsw:space": "cosine"})
+            self._drop(name)
+        self.collection = self.client.get_or_create_collection(name, metadata={"hnsw:space": "cosine"})
 
-    def _drop(self) -> None:
+    def _drop(self, name: str) -> None:
         try:
-            self.client.delete_collection(config.COLLECTION)
+            self.client.delete_collection(name)
         except Exception:  # collection doesn't exist yet; error type differs across chromadb versions
             pass
+
+    def promote(self, name: str = config.COLLECTION) -> None:
+        """Replace collection `name` with this one (used to swap a finished staging build in)."""
+        self._drop(name)
+        self.collection.modify(name=name)
+        self.name = name
 
     def add(self, paper_id: str, chunks: list[str], meta: dict) -> None:
         self.collection.delete(where={"paper": paper_id})  # re-ingesting a paper replaces its old chunks
@@ -104,19 +143,25 @@ class VectorStore:
         return self.collection.count()
 
 
-def ingest_all(reset: bool = False) -> int:
-    loader, chunker, store = PaperLoader(), Chunker(), VectorStore(reset=reset)
+def ingest_all(papers_dir: Path = config.PAPERS_DIR, records: list[dict] | None = None,
+               path: Path = config.CHROMA_DIR) -> int:
+    loader, chunker = PaperLoader(papers_dir, records), Chunker()
+    if warnings := loader.warnings():
+        print("Warning: these PDFs are NOT ingested:\n" + "\n".join(warnings))
+    store = VectorStore(path, name=config.COLLECTION + "_staging", reset=True)
     total = 0
     for paper_id, text, meta in loader.load():
         chunks = chunker.split(text)
         store.add(paper_id, chunks, meta)
         total += len(chunks)
-        print(f"[{paper_id}] {len(chunks)} chunks ({'curated' if meta['curated'] else 'manual'})")
+        print(f"[{paper_id}] {len(chunks)} chunks")
+    store.promote()
     return total
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Ingest PDFs from data/papers into Chroma.")
-    ap.add_argument("--reset", action="store_true", help="drop the collection and rebuild from scratch")
-    n = ingest_all(reset=ap.parse_args().reset)
+    ap = argparse.ArgumentParser(description="Rebuild Chroma from the papers the manifest marks as included.")
+    ap.add_argument("--reset", action="store_true", help=argparse.SUPPRESS)  # no-op: every run rebuilds
+    ap.parse_args()
+    n = ingest_all()
     print(f"Done. {n} chunks ingested.")

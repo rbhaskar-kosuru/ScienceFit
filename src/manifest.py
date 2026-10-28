@@ -1,4 +1,8 @@
-"""Curation manifest: the metadata bridge between curate.py and ingest.py."""
+"""Curation manifest: the metadata bridge between curate.py and ingest.py.
+
+Every paper curation has judged is listed, with `included` and, when excluded, a `reason`.
+"""
+import os
 import json
 from pathlib import Path
 
@@ -13,15 +17,16 @@ def load(path: Path = config.MANIFEST_PATH) -> list[dict]:
 
 
 def save(records: list[dict], path: Path = config.MANIFEST_PATH) -> None:
+    """Write to a temp file, then swap it in, so a crash mid-write never leaves a half-written manifest."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(records, indent=2))
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(records, indent=2))
+    os.replace(tmp, path)
 
 
-def merge(old: list[dict], new: list[dict]) -> list[dict]:
-    by_id = {r["paper_id"]: r for r in old}
-    by_id.update({r["paper_id"]: r for r in new})
-    return sorted(by_id.values(), key=lambda r: r.get("score", 0), reverse=True)
+def included(records: list[dict]) -> list[dict]:
+    return [r for r in records if r.get("included")]
 
 
-def by_file(records: list[dict]) -> dict[str, dict]:
-    return {r["pdf_file"]: r for r in records if r.get("pdf_file")}
+def excluded(records: list[dict]) -> list[dict]:
+    return [r for r in records if not r.get("included")]
