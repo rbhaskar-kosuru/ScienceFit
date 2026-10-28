@@ -16,3 +16,10 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# Tests
+.pytest_cache/
+
+# Claude Code (keep private)
+CLAUDE.md
+.claude/

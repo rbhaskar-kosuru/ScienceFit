@@ -1,15 +1,17 @@
-"""Curation pipeline: search OpenAlex, score papers, rank, download top-N open-access PDFs."""
+"""Curation: OpenAlex search → relevance gate → score → rank → download open-access PDFs → manifest."""
 import re
 import time
-import json
-from pathlib import Path
-from dataclasses import dataclass, asdict
+import argparse
+import unicodedata
+from datetime import date
+from dataclasses import dataclass, asdict, field
 
 import requests
 
-from . import config
+from . import config, manifest
 
 OPENALEX = "https://api.openalex.org/works"
+HEADERS = {"User-Agent": "ScienceFit/0.2 (research RAG)"}
 
 # Design tiers scanned from title/abstract, best evidence first.
 DESIGN_TIERS = [
@@ -55,9 +57,10 @@ CLINICAL_TERMS = {
 
 @dataclass
 class Paper:
-    id: str
+    openalex_id: str
     doi: str | None
     title: str
+    first_author: str
     year: int | None
     journal: str
     citations: int
@@ -66,26 +69,37 @@ class Paper:
     is_oa: bool
     pdf_url: str | None
     retracted: bool
-    text: str = ""
     score: float = 0.0
+    paper_id: str = ""
+    pdf_file: str | None = None
+    text: str = field(default="", repr=False)
+
+    def key(self) -> str:
+        return (self.doi or self.openalex_id or self.title).lower()
+
+    def to_record(self) -> dict:
+        record = asdict(self)
+        record.pop("text")
+        return record
 
 
 class OpenAlexClient:
-    def __init__(self, mailto: str = "you@example.com"):
+    def __init__(self, mailto: str = config.OPENALEX_MAILTO):
         self.session = requests.Session()
+        self.session.headers.update(HEADERS)
         self.mailto = mailto
 
     def search(self, query: str, n: int = 100, from_year: int = 2005) -> list[dict]:
         results, per_page = [], 50
-        pages = (n + per_page - 1) // per_page
-        for page in range(1, pages + 1):
+        for page in range(1, (n + per_page - 1) // per_page + 1):
             params = {
                 "search": query,
                 "filter": f"from_publication_date:{from_year}-01-01,type:article",
                 "per-page": per_page,
                 "page": page,
-                "mailto": self.mailto,
             }
+            if self.mailto:
+                params["mailto"] = self.mailto  # OpenAlex "polite pool": faster, more reliable
             r = self.session.get(OPENALEX, params=params, timeout=30)
             r.raise_for_status()
             results.extend(r.json().get("results", []))
@@ -94,29 +108,28 @@ class OpenAlexClient:
 
 
 class PaperParser:
-    def __init__(self, current_year: int = 2026):
-        self.current_year = current_year
+    def __init__(self, current_year: int | None = None):
+        self.current_year = current_year or date.today().year
 
     def parse(self, raw: dict) -> Paper:
         year = raw.get("publication_year")
         citations = raw.get("cited_by_count", 0)
-        journal = self._journal(raw)
         title = raw.get("title") or ""
-        abstract = self._abstract(raw.get("abstract_inverted_index"))
-        blob = f"{title} {abstract}"
-        design, _ = self._design(blob)
-        oa = raw.get("open_access", {}) or {}
+        blob = f"{title} {self._abstract(raw.get('abstract_inverted_index'))}"
+        oa = raw.get("open_access") or {}
+        best = raw.get("best_oa_location") or {}
         return Paper(
-            id=raw.get("id", ""),
+            openalex_id=raw.get("id", ""),
             doi=raw.get("doi"),
             title=title,
+            first_author=self._first_author(raw),
             year=year,
-            journal=journal,
+            journal=self._journal(raw),
             citations=citations,
             citations_per_year=self._per_year(citations, year),
-            design=design,
+            design=self._design(blob)[0],
             is_oa=oa.get("is_oa", False),
-            pdf_url=oa.get("oa_url"),
+            pdf_url=best.get("pdf_url") or oa.get("oa_url"),  # direct PDF link beats a landing page
             retracted=raw.get("is_retracted", False),
             text=blob.lower(),
         )
@@ -127,9 +140,13 @@ class PaperParser:
         return round(citations / max(self.current_year - year + 1, 1), 2)
 
     @staticmethod
+    def _first_author(raw: dict) -> str:
+        authors = raw.get("authorships") or []
+        return ((authors[0].get("author") or {}).get("display_name") or "").strip() if authors else ""
+
+    @staticmethod
     def _journal(raw: dict) -> str:
-        loc = raw.get("primary_location") or {}
-        source = loc.get("source") or {}
+        source = (raw.get("primary_location") or {}).get("source") or {}
         return (source.get("display_name") or "").strip()
 
     @staticmethod
@@ -191,58 +208,104 @@ class Scorer:
         return DEFAULT_DESIGN[1]
 
 
+class IdAssigner:
+    """Readable, stable citation keys: schoenfeld_2017, schoenfeld_2017b, ... Same paper keeps its ID across runs."""
+
+    def __init__(self, existing: dict[str, str]):
+        self.existing = existing  # paper key (DOI or OpenAlex ID) -> paper_id
+        self.taken = set(existing.values())
+
+    def assign(self, p: Paper) -> str:
+        if p.key() in self.existing:
+            return self.existing[p.key()]
+        base = citation_key(p.first_author, p.year, p.title)
+        pid, suffix = base, ord("b")
+        while pid in self.taken:
+            pid, suffix = f"{base}{chr(suffix)}", suffix + 1
+        self.taken.add(pid)
+        self.existing[p.key()] = pid
+        return pid
+
+
+def citation_key(author: str, year: int | None, title: str) -> str:
+    words = _ascii(author or title).split()
+    name = re.sub(r"[^a-z0-9]", "", words[-1 if author else 0].lower()) if words else ""
+    name = name or "paper"
+    return f"{name}_{year}" if year else name
+
+
+def _ascii(text: str) -> str:
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+
+
+def dedupe(papers: list[Paper]) -> list[Paper]:
+    seen, unique = set(), []
+    for p in papers:
+        if p.key() not in seen:
+            seen.add(p.key())
+            unique.append(p)
+    return unique
+
+
 class PDFDownloader:
-    def __init__(self, out_dir: Path = config.PAPERS_DIR):
+    def __init__(self, out_dir=config.PAPERS_DIR):
         self.out_dir = out_dir
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
+        self.session.headers.update(HEADERS)
 
     def download(self, papers: list[Paper]) -> list[Paper]:
-        got = []
-        for p in papers:
-            if p.pdf_url and self._fetch(p):
-                got.append(p)
-        return got
+        return [p for p in papers if p.pdf_url and self._fetch(p)]
 
     def _fetch(self, p: Paper) -> bool:
-        try:
-            r = self.session.get(p.pdf_url, timeout=60)
-            if r.ok and "pdf" in r.headers.get("content-type", "").lower():
-                (self.out_dir / f"{self._slug(p)}.pdf").write_bytes(r.content)
-                return True
-        except requests.RequestException:
-            pass
-        return False
-
-    @staticmethod
-    def _slug(p: Paper) -> str:
-        base = re.sub(r"[^a-z0-9]+", "_", p.title.lower()).strip("_")[:50]
-        return base or p.id.rsplit("/", 1)[-1]
+        target = self.out_dir / f"{p.paper_id}.pdf"
+        if not target.exists():
+            try:
+                r = self.session.get(p.pdf_url, timeout=60)
+            except requests.RequestException:
+                return False
+            if not (r.ok and r.content[:5] == b"%PDF-"):  # landing pages and paywalls return HTML
+                return False
+            target.write_bytes(r.content)
+        p.pdf_file = target.name
+        return True
 
 
 def curate(query: str, pull: int = 100, keep: int = 20, download: bool = True) -> list[Paper]:
     raw = OpenAlexClient().search(query, n=pull)
     parser = PaperParser()
-    papers = [parser.parse(r) for r in raw]
+    papers = dedupe([parser.parse(r) for r in raw])
     relevant = RelevanceFilter().apply(papers)
     print(f"Relevance gate: {len(relevant)}/{len(papers)} passed.")
     ranked = Scorer().score_all(relevant)[:keep]
-    _save_manifest(ranked)
+
+    old = manifest.load()
+    ids = IdAssigner({(r.get("doi") or r.get("openalex_id") or r.get("title", "")).lower(): r["paper_id"] for r in old})
+    for p in ranked:
+        p.paper_id = ids.assign(p)
     if download:
-        fetched = PDFDownloader().download(ranked)
-        print(f"Downloaded {len(fetched)}/{len(ranked)} open-access PDFs.")
+        got = PDFDownloader().download(ranked)
+        print(f"PDFs available: {len(got)}/{len(ranked)} (paywalled papers stay in the manifest, no PDF).")
+
+    records = manifest.merge(old, [p.to_record() for p in ranked])
+    manifest.save(records)
+    print(f"Manifest: {config.MANIFEST_PATH} ({len(records)} papers)")
     return ranked
 
 
-def _save_manifest(papers: list[Paper]) -> None:
-    manifest = config.PAPERS_DIR.parent / "curation_manifest.json"
-    manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text(json.dumps([asdict(p) for p in papers], indent=2))
-    print(f"Manifest written: {manifest} ({len(papers)} papers)")
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Curate resistance-training papers from OpenAlex.")
+    ap.add_argument("query", nargs="?", default="resistance training hypertrophy muscle strength")
+    ap.add_argument("--pull", type=int, default=100, help="papers to fetch from OpenAlex")
+    ap.add_argument("--keep", type=int, default=20, help="top-ranked papers to keep")
+    ap.add_argument("--no-download", action="store_true", help="rank only, skip PDF downloads")
+    args = ap.parse_args()
+
+    ranked = curate(args.query, pull=args.pull, keep=args.keep, download=not args.no_download)
+    for i, p in enumerate(ranked, 1):
+        pdf = "PDF" if p.pdf_file else "   "
+        print(f"{i:2d}. [{p.score:.3f}] {pdf} {p.paper_id:22s} {p.design:16s} {p.title[:60]}")
 
 
 if __name__ == "__main__":
-    ranked = curate("resistance training hypertrophy muscle strength", pull=100, keep=20)
-    for i, p in enumerate(ranked, 1):
-        tag = "OA" if p.is_oa else "  "
-        print(f"{i:2d}. [{p.score:.3f}] {tag} {p.design:16s} {p.citations_per_year:5.1f}/yr  {p.title[:70]}")
+    main()
