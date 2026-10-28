@@ -34,3 +34,20 @@ QUALITY_WEIGHT = 0.1    # tie-break boost from the curation score (design, journ
 
 # Curation
 OPENALEX_MAILTO = os.getenv("OPENALEX_MAILTO", "")
+OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY", "")  # free key at openalex.org/settings/api; without it the IP shares $0.10/day
+CURATE_QUERIES = [  # several angles so volume, frequency, load, etc. are all covered
+    "resistance training hypertrophy",
+    "training volume sets hypertrophy",
+    "resistance training frequency",
+    "load intensity strength gains",
+    "proximity to failure resistance training",
+    "rest interval resistance training",
+    "protein supplementation resistance training",
+    "creatine resistance training",
+]
+CURATE_CANDIDATES = 1000           # total pulled from OpenAlex, split evenly across queries
+CURATE_TARGET_PDFS = 20            # download in rank order until this many valid PDFs
+CURATE_MIN_SCORE = 0.65            # 0-1 quality cutoff before download; None = no cut
+CURATE_FROM_YEAR = 2005
+CURATE_MAX_DOWNLOAD_ATTEMPTS = 100 # safety cap on papers tried
+CITATION_CAP = 50                  # citations/year that earns the full citation score (log-scaled)

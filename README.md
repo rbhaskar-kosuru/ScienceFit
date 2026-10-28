@@ -11,7 +11,8 @@ Most fitness chatbots coach behavior. None retrieve from actual research papers 
 ## How it works
 
 ```
-Curate   OpenAlex search → relevance gate → score → rank → open-access PDFs + manifest
+Curate   OpenAlex (several queries, open access only) → relevance gate → score → min-score cut
+         → download in rank order until 20 valid PDFs → manifest
 Ingest   PDFs + manifest → chunks → embeddings → Chroma (metadata on every chunk)
 Ask      question → embed → top-20 candidates (Chroma)
                  → cross-encoder rerank → drop chunks below relevance threshold
@@ -69,18 +70,23 @@ python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Optional: your email for OpenAlex's faster "polite pool"
-cp .env.example .env           # then edit OPENALEX_MAILTO
+# Optional: OpenAlex email ("polite pool") and free API key
+cp .env.example .env           # then edit OPENALEX_MAILTO / OPENALEX_API_KEY
 ```
 
 ## Usage
 
 1. **Curate papers** — fetch, score and rank from OpenAlex, download open-access PDFs:
    ```bash
-   python -m src.curate                                  # default query, pull 100, keep 20
-   python -m src.curate "training to failure" --keep 10  # custom query
+   python -m src.curate                                    # CURATE_QUERIES, ~1,000 candidates, 20 PDFs
+   python -m src.curate --no-download                      # rank only; prints top papers, manifest untouched
+   python -m src.curate "training to failure" --target 10  # single custom query
    ```
-   PDFs are saved as `data/papers/<paper_id>.pdf` with readable IDs like `schoenfeld_2017`. All ranked papers go into `data/curation_manifest.json`, including paywalled ones with no PDF. Re-running merges into the manifest and keeps existing IDs.
+   Candidates are pulled 200 per page across `CURATE_QUERIES`, deduplicated by DOI and limited to open access. Articles and reviews (where OpenAlex files most meta-analyses) are fetched. A paper passes the relevance gate if it mentions a resistance-specific term (resistance, strength, hypertrophy, 1RM, …; `training` alone isn't enough) and no clinical or bench-science term. Matching is whole-word, so `strength` doesn't match `strengthen` and `randomized` doesn't match `non-randomized`. Score = 0.40 × citations (log scale, full marks at `CITATION_CAP`/year) + 0.35 × study design + 0.25 × trusted journal. Papers below `CURATE_MIN_SCORE` are cut, then PDFs are downloaded in rank order, trying every open-access link, until `CURATE_TARGET_PDFS` are valid.
+
+   PDFs are saved as `data/papers/<paper_id>.pdf` with readable IDs like `schoenfeld_2017`. Only papers with a PDF go into `data/curation_manifest.json`. Re-running merges into the manifest and keeps existing IDs.
+
+   OpenAlex bills each search against a daily budget (about 10 credits per search; without a key your IP shares 1,000 credits a day). A default run uses about 8 searches.
 
    You can also drop PDFs into `data/papers/` by hand. They're ingested with the filename as ID and no curation metadata.
 
@@ -176,6 +182,12 @@ Tune in `src/config.py`:
 | `TOP_K`            | 5                                      | Max excerpts passed to the LLM                  |
 | `MIN_RERANK_SCORE` | 0.1                                    | 0–1; below this a chunk is dropped              |
 | `QUALITY_WEIGHT`   | 0.1                                    | How much curation score breaks relevance ties   |
+| `CURATE_QUERIES`   | 8 queries                              | OpenAlex searches; candidates split across them |
+| `CURATE_CANDIDATES`| 1000                                   | Total candidates fetched (200 per page)         |
+| `CURATE_TARGET_PDFS`| 20                                    | Stop downloading at this many valid PDFs        |
+| `CURATE_MIN_SCORE` | 0.65                                   | 0–1 quality cutoff before download; `None` = no cut |
+| `CURATE_MAX_DOWNLOAD_ATTEMPTS` | 100                        | Safety cap on papers tried                      |
+| `CITATION_CAP`     | 50                                     | Citations/year that earns the full citation score |
 
 ## Swapping the LLM
 
@@ -196,7 +208,7 @@ To use Claude, GPT-4, Groq or any hosted model, pass a different `generate(syste
 ## Notes
 
 - Answers are only as good as the papers you feed it. Curate carefully.
-- Only open-access PDFs download automatically; paywalled papers stay in the manifest for manual retrieval.
+- Only open-access papers are fetched. Paywalled papers can still be added by hand to `data/papers/`.
 - Papers are used locally for retrieval and citation only, not redistributed.
 - The LLM can still misread excerpts. Citations let users verify.
 - Not medical or professional advice.

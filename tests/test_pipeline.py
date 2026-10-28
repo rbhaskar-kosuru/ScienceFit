@@ -1,4 +1,5 @@
 """Pipeline tests. No Ollama or reranker download needed: both are faked."""
+import math
 from src import curate, ingest, manifest
 from src.ingest import Chunker, PaperLoader, VectorStore
 from src.rag import RAG, NO_EVIDENCE, validate_citations
@@ -101,3 +102,103 @@ def test_manifest_merge_updates_and_keeps_old_records():
 def test_chunker_respects_size_and_overlap():
     chunks = Chunker(size=10, overlap=2).split("a" * 25)
     assert len(chunks) == 4 and all(len(c) <= 10 for c in chunks)
+
+
+# --- Curation ---
+
+class FakeResponse:
+    def __init__(self, json_data=None, content=b"", status=200):
+        self._json, self.content, self.status_code = json_data, content, status
+        self.ok, self.headers = status < 400, {}
+
+    def json(self):
+        return self._json
+
+    def raise_for_status(self):
+        if not self.ok:
+            raise RuntimeError(self.status_code)
+
+
+class FakeSession:
+    def __init__(self, respond):
+        self.respond, self.headers, self.calls = respond, {}, []
+
+    def get(self, url, params=None, timeout=None):
+        self.calls.append((url, params))
+        return self.respond(url, params)
+
+
+def raw_work(doi, **extra):
+    return {"id": doi, "doi": doi, "title": "T", "open_access": {"is_oa": True},
+            "best_oa_location": {"pdf_url": f"https://x.org/{doi}.pdf"}, **extra}
+
+
+def test_search_paginates_at_200_with_oa_filter_and_stops_when_results_run_out():
+    pages = {1: [raw_work(f"d{i}") for i in range(200)], 2: [raw_work("last")]}
+    session = FakeSession(lambda url, params: FakeResponse({"results": pages.get(params["page"], [])}))
+    results = curate.OpenAlexClient(mailto="", api_key="", session=session).search("q", n=500)
+    assert len(results) == 201 and len(session.calls) == 2
+    params = session.calls[0][1]
+    assert params["per-page"] == 200 and "type:article|review,is_oa:true" in params["filter"]
+
+
+def test_search_many_splits_total_across_queries_and_dedupe_removes_overlap():
+    session = FakeSession(lambda url, params: FakeResponse({"results": [raw_work("shared"), raw_work(params["search"])]}))
+    raw = curate.OpenAlexClient(mailto="", api_key="", session=session).search_many(["a", "b"], total=4)
+    assert [p["per-page"] for _, p in session.calls] == [2, 2]
+    parser = curate.PaperParser(current_year=2026)
+    assert [p.doi for p in curate.dedupe([parser.parse(r) for r in raw])] == ["shared", "a", "b"]
+
+
+def test_parser_collects_all_oa_pdf_links_best_first():
+    raw = raw_work("d", locations=[{"is_oa": True, "pdf_url": "https://x.org/d.pdf"},
+                                   {"is_oa": True, "pdf_url": "https://mirror.org/d.pdf"},
+                                   {"is_oa": False, "pdf_url": "https://paywall.org/d.pdf"}])
+    assert curate.PaperParser().parse(raw).pdf_urls == ["https://x.org/d.pdf", "https://mirror.org/d.pdf"]
+
+
+def test_gate_and_design_match_whole_words_and_skip_negations():
+    gate = curate.RelevanceFilter()
+    text = lambda t: curate.Paper(**{**vars(paper("A", "d")), "text": t})
+    assert gate.apply([text("strength gains")]) and not gate.apply([text("strengthen the case")])
+    assert not gate.apply([text("endurance training and cognitive training")])  # 'training' alone isn't enough
+    assert not gate.apply([text("strength in knee osteoarthritis")])
+    assert not gate.apply([text("resistance training in diabetes")]) and gate.apply([text("non-clinical resistance training")])
+    design = curate.PaperParser._design
+    assert design("a randomized trial")[0] == "rct"
+    assert design("a non-randomized trial")[0] == "other"
+    assert design("a non randomised cohort")[0] == "cohort"
+    assert design("muscle structure")[0] == "other"  # 'rct' inside a word doesn't count
+
+
+def test_journal_names_normalize_ampersands_and_punctuation():
+    assert curate.normalize_journal("Medicine & Science in Sports & Exercise") in curate.TRUSTED_JOURNALS
+    assert curate.normalize_journal("Scandinavian Journal of Medicine & Science in Sports") in curate.TRUSTED_JOURNALS
+
+
+def test_scorer_uses_fixed_log_citation_scale_and_min_score():
+    def scored(cpy, journal=""):
+        return curate.Paper(**{**vars(paper("A", f"d{cpy}{journal}")), "citations_per_year": cpy, "journal": journal})
+    top, mid, none = curate.Scorer(min_score=None).score_all([scored(500), scored(10), scored(0)])
+    assert top.score == round(0.4 + 0.35 * 0.8 + 0.25 * 0.5, 4)  # clipped at CITATION_CAP
+    assert mid.score == round(0.4 * math.log1p(10) / math.log1p(50) + 0.28 + 0.125, 4)
+    assert none.score == 0.405
+    assert [p.citations_per_year for p in curate.Scorer(min_score=0.5).score_all([scored(500), scored(0)])] == [500]
+
+
+def test_download_until_walks_rank_order_skips_failures_and_stops_at_target(tmp_path):
+    bodies = {"good1": b"%PDF-1", "html": b"<html>", "good2": b"%PDF-2", "good3": b"%PDF-3"}
+    session = FakeSession(lambda url, params: FakeResponse(content=bodies[url.split("/")[-1]]))
+    papers = [curate.Paper(**{**vars(paper("A", name)), "pdf_urls": [f"https://h.org/{name}"]}) for name in bodies]
+    got = curate.PDFDownloader(tmp_path, session=session, host_delay=0).download_until(
+        papers, target=2, assign_id=lambda p: p.doi)
+    assert [p.paper_id for p in got] == ["good1", "good2"]
+    assert len(session.calls) == 3  # good3 never tried
+    assert sorted(f.name for f in tmp_path.iterdir()) == ["good1.pdf", "good2.pdf"]
+
+
+def test_download_falls_back_to_next_link(tmp_path):
+    session = FakeSession(lambda url, params: FakeResponse(content=b"%PDF-1" if "mirror" in url else b"<html>"))
+    p = curate.Paper(**{**vars(paper("A", "d")), "pdf_urls": ["https://pub.org/d", "https://mirror.org/d"]})
+    got = curate.PDFDownloader(tmp_path, session=session, host_delay=0).download_until([p], 1, lambda p: "a_2017")
+    assert got[0].pdf_file == "a_2017.pdf"
