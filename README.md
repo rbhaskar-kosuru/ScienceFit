@@ -18,7 +18,7 @@ Ingest   included papers → strip line numbers, front matter and references →
          → chunks (never crossing a section) → embed "Paper: title. Section: …" + chunk
          → rebuild Chroma from scratch (metadata and section on every chunk)
 Ask      question → under 3 words and no fitness term? refuse, no search
-                 → embed → top-20 candidates (Chroma)
+                 → embed → top-100 chunks (Chroma) → max 4 per paper → up to 20 candidates
                  → cross-encoder rerank (header + chunk) → drop chunks below relevance threshold
                  → none left? refuse, no LLM call
                  → top-5 excerpts, max 2 per paper → LLM (Ollama, temperature 0) → answer
@@ -27,10 +27,11 @@ Ask      question → under 3 words and no fitness term? refuse, no search
 
 - **Curation metadata survives ingest.** Title, year, journal, DOI, study design and quality score are stored on every chunk, so citations link to real papers.
 - **Section labels.** Every chunk is labelled `abstract`, `introduction`, `methods`, `results`, `discussion` or `unknown`. Introductions mostly summarise *other* studies, so they are ranked lower and the LLM is told not to present them as the cited paper's own findings.
+- **Delimited excerpts.** The LLM sees each chunk as `<excerpt id="grgic_2021" section="discussion">…</excerpt>`, with no title, journal or design inside, and is told to answer in its own words, cite with `[id]` and never reproduce the markup. The user prompt lists the allowed citation ids (the papers in the excerpts); the system prompt has no example paper ID, because the 3B model copied it into answers.
 - **Contextual headers.** Each chunk is embedded and reranked as `Paper: <title>. Section: <section>.` + the chunk, so a chunk saying "we found…" still carries its paper and section. Chroma stores the raw chunk.
-- **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Rank score = logit + `QUALITY_WEIGHT` × curation score − `INTRO_PENALTY` (introduction chunks only). The cross-encoder logit runs about −11 to +11, so quality breaks near-ties without overriding a clearly better match. At most `MAX_CHUNKS_PER_PAPER` chunks per paper reach the LLM, so one paper can't crowd out the rest.
+- **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Rank score = logit + `QUALITY_WEIGHT` × curation score − `INTRO_PENALTY` (introduction chunks only). Before reranking, Chroma returns the 100 closest chunks and at most `CANDIDATE_PER_PAPER` per paper go on, up to `CANDIDATE_K`: the title in the contextual header makes every chunk of a title-matching paper look close, and without this cap one paper filled all 20 slots. The cross-encoder logit runs about −11 to +11, so quality breaks near-ties without overriding a clearly better match. At most `MAX_CHUNKS_PER_PAPER` chunks per paper reach the LLM, so one paper can't crowd out the rest.
 - **Honest refusal.** Short off-topic questions ("hi", "thanks!") are refused before searching. Otherwise, if no chunk's relevance (sigmoid of the logit, 0–1) clears `MIN_RERANK_SCORE`, the API says so instead of guessing.
-- **Citation validation.** Every `[paper_id]` and parenthesised `(paper_id)` in the answer is checked against the retrieved papers. Invented IDs and bracketed author-style citations (`[Cribb et al.]`, `[Smith 2019]`) are flagged; brackets that aren't citations (`[P < 0.05]`, `[n = 12]`, `[95% CI …]`) and author-style text in parentheses are ignored.
+- **Citation validation.** Every `[paper_id]` and parenthesised `(paper_id)` in the answer is checked against the retrieved papers, case-insensitively (`(Borde_2015)` counts as `borde_2015`; reported IDs are lowercase). Invented IDs and bracketed author-style citations (`[Cribb et al.]`, `[Smith 2019]`) are flagged; brackets that aren't citations (`[P < 0.05]`, `[n = 12]`, `[95% CI …]`) and author-style text in parentheses are ignored.
 
 ## Stack
 
@@ -219,6 +220,8 @@ Tune in `src/config.py`:
 | `COLLECTION`       | `sciencefit_v3`                        | Bumped when embeddings change; re-ingest after  |
 | `CHUNK_SIZE`       | 800                                    | Characters per chunk; changing it needs a re-ingest |
 | `CHUNK_OVERLAP`    | 150                                    | Preserves context across splits                 |
+| `CANDIDATE_POOL`   | 100                                    | Chunks pulled from Chroma before the per-paper cap |
+| `CANDIDATE_PER_PAPER` | 4                                   | Max chunks per paper among reranker candidates  |
 | `CANDIDATE_K`      | 20                                     | Vector-search candidates sent to the reranker   |
 | `TOP_K`            | 5                                      | Max excerpts passed to the LLM                  |
 | `MIN_RERANK_SCORE` | 0.1                                    | 0–1 (sigmoid of logit); below this a chunk is dropped |

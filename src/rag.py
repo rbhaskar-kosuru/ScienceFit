@@ -14,19 +14,22 @@ SYSTEM_PROMPT = (
     "Report what the research shows, including specific numbers, set/rep ranges, and protocols. "
     "Do NOT refuse, moralize, or add medical disclaimers — you are summarizing published research, not giving medical advice. "
     "\n\n"
+    "Excerpts are wrapped in <excerpt id=\"...\" section=\"...\"> ... </excerpt> markup. The markup is for you "
+    "only: answer in your own words and never reproduce excerpt tags, ids, attributes or headers in the answer.\n"
+    "\n"
     "Citation rules (strict):\n"
-    "- Each excerpt starts with a paper tag such as [grgic_2021]. Cite ONLY with those exact tags, e.g. "
-    "\"Training to failure did not increase hypertrophy [grgic_2021].\"\n"
+    "- Cite with the excerpt's id in square brackets, written as [id]. Use ONLY the allowed ids listed with "
+    "the question; never invent or alter an id.\n"
     "- Never cite author names or years that appear inside the excerpt text, and never copy the excerpts' "
     "own reference numbers such as [17] or [3, 4].\n"
-    "- Tag every claim with the tag of the excerpt it came from.\n"
+    "- Tag every claim with the id of the excerpt it came from.\n"
     "\n"
-    "Sections: an excerpt marked (Introduction) summarises OTHER studies as background. Never present it as "
-    "the cited paper's own finding; write \"as reviewed in [grgic_2021]\" instead. Findings come from "
-    "Abstract, Results and Discussion excerpts.\n"
+    "Sections: an excerpt with section=\"introduction\" summarises OTHER studies as background. Never present "
+    "it as the cited paper's own finding; write \"as reviewed in [id]\" instead. Findings come from "
+    "abstract, results and discussion excerpts.\n"
     "\n"
     "If the excerpts genuinely lack the answer, say so briefly, then share the closest relevant "
-    "findings that ARE in the excerpts (with their tags). Keep answers concise."
+    "findings that ARE in the excerpts (with their [id] citations). Keep answers concise."
 )
 
 NO_EVIDENCE = (
@@ -36,7 +39,7 @@ NO_EVIDENCE = (
 
 CITATION = re.compile(r"\[([^\[\]]+)\](?!\()")  # [tag] but not markdown links [text](url)
 PAREN_CITATION = re.compile(r"\(([^()]+)\)")  # (currier_2026); only paper-ID-shaped tags count
-PAPER_ID = re.compile(r"[a-z][a-z0-9]*_\d{4}[a-z]?")  # citation_key() shape: cribb_2007, schoenfeld_2017b
+PAPER_ID = re.compile(r"[a-z][a-z0-9]*_\d{4}[a-z]?", re.I)  # citation_key() shape: cribb_2007, Borde_2015
 AUTHOR_CITATION = re.compile(r"[A-Z][\w'’-]+.*(?:\bet al\b|\b(?:19|20)\d{2}[a-z]?\b)")  # [Cribb et al.], [Smith 2019]
 NOT_CITATION = re.compile(r"[<>=%±]")  # statistics: [P < 0.05], [n = 12], [95% CI 1.1–2.3]
 SOURCE_FIELDS = ("title", "first_author", "year", "journal", "doi", "design", "curated")
@@ -64,7 +67,7 @@ class RAG:
     def ask(self, question: str, top_k: int = config.TOP_K) -> dict:
         if off_topic(question):
             return response(NO_EVIDENCE, refused=True)
-        relevant = [h for h in self.rerank(question, self.store.query(question))
+        relevant = [h for h in self.rerank(question, self.candidates(question))
                     if h["relevance"] >= config.MIN_RERANK_SCORE]
         hits = select(relevant, top_k)
         if not hits:
@@ -72,6 +75,13 @@ class RAG:
         answer = self.generate(SYSTEM_PROMPT, build_prompt(question, hits))
         cited, unverified = validate_citations(answer, {h["paper"] for h in hits})
         return response(answer, sources=sources(hits, cited), unverified=unverified)
+
+    def candidates(self, question: str) -> list[dict]:
+        """Top CANDIDATE_POOL chunks by vector distance, then best-first with at most CANDIDATE_PER_PAPER per paper,
+        up to CANDIDATE_K. Contextual headers make every chunk of a title-matching paper look close, so without
+        the cap one paper fills all the reranker's slots."""
+        pool = self.store.query(question, k=config.CANDIDATE_POOL)
+        return select(pool, config.CANDIDATE_K, config.CANDIDATE_PER_PAPER)
 
     def rerank(self, question: str, hits: list[dict]) -> list[dict]:
         """Rank by logit + QUALITY_WEIGHT x curation score - INTRO_PENALTY (introduction chunks). The reranker reads
@@ -105,33 +115,36 @@ def off_topic(question: str) -> bool:
 
 
 def build_prompt(question: str, hits: list[dict]) -> str:
-    excerpts = "\n\n".join(f"{excerpt_header(h)}\n{h['text']}" for h in hits)
-    return (f"Excerpts:\n\n{excerpts}\n\nQuestion: {question}\n\n"
-            "Answer using only the paper tags above, like [grgic_2021].")
+    excerpts = "\n\n".join(format_excerpt(h) for h in hits)
+    ids = ", ".join(dict.fromkeys(h["paper"] for h in hits))
+    return (f"{excerpts}\n\nQuestion: {question}\n\n"
+            f"Allowed citation ids: {ids}\n"
+            "Answer in your own words. Cite only with an allowed id in the format [id]; "
+            "don't reproduce the excerpt markup.")
 
 
-def excerpt_header(h: dict) -> str:
-    """[carvalho_2022] (Introduction) Title | year | journal | design; unknown sections get no label."""
+def format_excerpt(h: dict) -> str:
+    """<excerpt id="carvalho_2022" section="introduction"> text </excerpt>. No title/journal/design, so there's
+    no header for the model to copy; unknown sections get no section attribute."""
     section = h.get("section")
-    label = f" ({section.capitalize()})" if section and section != "unknown" else ""
-    return f"[{h['paper']}]{label} {describe(h)}".rstrip()
-
-
-def describe(meta: dict) -> str:
-    parts = (meta.get("title"), meta.get("year"), meta.get("journal"), meta.get("design"))
-    return " | ".join(str(p) for p in parts if p)
+    attr = f' section="{section}"' if section and section != "unknown" else ""
+    return f'<excerpt id="{h["paper"]}"{attr}>\n{h["text"]}\n</excerpt>'
 
 
 def validate_citations(answer: str, allowed: set[str]) -> tuple[set[str], list[str]]:
     """Split citations into retrieved paper IDs and unverified ones. Paper IDs not retrieved and author-style
     citations ([Cribb et al.], [Smith 2019]) are unverified; brackets that aren't citations ([P < 0.05]) are ignored.
-    Paper-ID-shaped tags in parentheses, (currier_2026), are checked too; other parenthesised text is not."""
+    Paper-ID-shaped tags in parentheses, (currier_2026), are checked too; other parenthesised text is not.
+    Paper IDs match case-insensitively and are returned lowercase ([Borde_2015] → borde_2015)."""
+    allowed = {a.lower() for a in allowed}
     cited, unverified = set(), []
     for group in CITATION.findall(answer):
         tags = [t.strip().removeprefix("paper_id:").strip() for t in re.split(r"[;,]", group)]
         if not any(PAPER_ID.fullmatch(t) for t in tags):
             tags = [group.strip()]  # keep "[Smith and Jones, 2018]" whole instead of splitting at the comma
         for tag in tags:
+            if PAPER_ID.fullmatch(tag):
+                tag = tag.lower()
             if PAPER_ID.fullmatch(tag) and tag in allowed:
                 cited.add(tag)
             elif (PAPER_ID.fullmatch(tag) or (AUTHOR_CITATION.search(tag) and not NOT_CITATION.search(tag))) \
@@ -141,6 +154,7 @@ def validate_citations(answer: str, allowed: set[str]) -> tuple[set[str], list[s
         for tag in (t.strip().removeprefix("paper_id:").strip() for t in re.split(r"[;,]", group)):
             if not PAPER_ID.fullmatch(tag):
                 continue
+            tag = tag.lower()
             if tag in allowed:
                 cited.add(tag)
             elif tag not in unverified:
@@ -178,7 +192,7 @@ def main() -> None:
         print("Refused before searching: under 3 words and no fitness term.")
         return
     print("logit   relev  rank    verdict  paper (section)")
-    for h in rag.rerank(question, rag.store.query(question))[:10]:
+    for h in rag.rerank(question, rag.candidates(question))[:10]:
         verdict = "keep" if h["relevance"] >= config.MIN_RERANK_SCORE else "drop"
         print(f"{h['logit']:+6.2f}  {h['relevance']:.3f}  {h['rank_score']:+6.2f}  {verdict}     "
               f"[{h['paper']}] ({h.get('section', 'unknown')}) {h['text'][:60]}")

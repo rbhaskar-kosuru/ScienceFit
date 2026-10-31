@@ -429,13 +429,30 @@ def test_reranker_scores_header_and_text():
     assert reranker.passages == ["Paper: Volume. Section: methods.\nexcerpt from a_2020"]
 
 
-def test_excerpt_header_shows_section_and_prompt_warns_about_introductions():
+def test_excerpts_are_delimited_without_metadata_and_prompt_forbids_copying_markup():
     prompt = build_prompt("q", [hit("carvalho_2022", section="introduction", title="Failure", year=2022,
                                     journal="Sports Med", design="review"),
                                 hit("lee_2019", section="unknown", title="Load")])
-    assert "[carvalho_2022] (Introduction) Failure | 2022 | Sports Med | review\nexcerpt" in prompt
-    assert "[lee_2019] Load\nexcerpt" in prompt
-    assert "Introduction" in SYSTEM_PROMPT and "as reviewed in [grgic_2021]" in SYSTEM_PROMPT
+    assert '<excerpt id="carvalho_2022" section="introduction">\nexcerpt from carvalho_2022\n</excerpt>' in prompt
+    assert '<excerpt id="lee_2019">\nexcerpt from lee_2019\n</excerpt>' in prompt
+    assert not any(meta in prompt for meta in ("Failure", "Sports Med", "review", "2022 |", "Load"))
+    assert 'section="introduction"' in SYSTEM_PROMPT and "as reviewed in [id]" in SYSTEM_PROMPT
+    assert "Allowed citation ids: carvalho_2022, lee_2019\n" in prompt and "format [id]" in prompt
+
+
+def test_system_prompt_has_no_example_paper_id():
+    assert not ingest_paper_id_shaped(SYSTEM_PROMPT)
+
+
+def ingest_paper_id_shaped(text):
+    import re
+    return re.findall(r"\b[a-z][a-z0-9]*_\d{4}[a-z]?\b", text, re.I)
+
+
+def test_allowed_ids_are_listed_once_in_retrieval_order():
+    prompt = build_prompt("q", [hit("b_2021", 0), hit("a_2020"), hit("b_2021", 1)])
+    assert "Allowed citation ids: b_2021, a_2020\n" in prompt
+    assert "own words" in SYSTEM_PROMPT and "never reproduce excerpt" in SYSTEM_PROMPT
     assert "[17]" in SYSTEM_PROMPT and "[paper_id]" not in SYSTEM_PROMPT + prompt
 
 
@@ -455,6 +472,23 @@ def test_select_caps_chunks_per_paper_and_fills_with_others():
     hits = [hit("lopez_2020", i) for i in range(4)] + [hit("grgic_2021"), hit("refalo_2022")]
     chosen = select(hits, top_k=3, per_paper=2)
     assert [(h["paper"], h["chunk_index"]) for h in chosen] == [("lopez_2020", 0), ("lopez_2020", 1), ("grgic_2021", 0)]
+
+
+def test_candidates_pool_is_capped_per_paper_before_reranking(monkeypatch):
+    monkeypatch.setattr(ingest.config, "CANDIDATE_POOL", 100)
+    monkeypatch.setattr(ingest.config, "CANDIDATE_PER_PAPER", 4)
+    monkeypatch.setattr(ingest.config, "CANDIDATE_K", 6)
+    pool = [hit("ralston_2017", i) for i in range(67)] + [hit("currier_2026"), hit("behm_2023", 0), hit("behm_2023", 1)]
+    store, reranker = FakeStore(pool), FakeReranker([1.0] * 20)
+    ks = []
+    store.query = lambda question, k=20: ks.append(k) or [dict(h) for h in pool]
+    rag = RAG(store, reranker, lambda s, p: "x")
+    chosen = rag.candidates("How many sets per week?")
+    assert ks == [100]
+    assert [(h["paper"], h["chunk_index"]) for h in chosen] == [("ralston_2017", i) for i in range(4)] + \
+        [("currier_2026", 0), ("behm_2023", 0)]
+    rag.ask("How many sets per week?")
+    assert len(reranker.passages) == 6  # the reranker sees only the capped candidates
 
 
 def test_short_off_topic_question_is_refused_before_searching():
@@ -490,3 +524,10 @@ def test_smoke_check_flags_answers_cited_only_from_introductions():
     result = check({"expect_any": ["a_2020"]}, answer("introduction", "introduction"))
     assert result["intro_only"] and result["cited_sections"] == {"a_2020": ["introduction", "introduction"]}
     assert not check({"expect_any": ["a_2020"]}, answer("introduction", "results"))["intro_only"]
+
+
+def test_validate_citations_matches_paper_ids_case_insensitively_and_lowercases():
+    answer = "More sets helped (Borde_2015). Loads [Carvalho_2022; LOPEZ_2020]. Also [Grgic_2007] and (Smith_2019)."
+    cited, invented = validate_citations(answer, {"borde_2015", "carvalho_2022", "Lopez_2020"})
+    assert cited == {"borde_2015", "carvalho_2022", "lopez_2020"}
+    assert invented == ["grgic_2007", "smith_2019"]

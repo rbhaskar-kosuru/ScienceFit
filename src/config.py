@@ -29,6 +29,8 @@ CHUNK_OVERLAP = 150
 EMBED_BATCH = 32
 
 # Retrieval
+CANDIDATE_POOL = 100    # chunks pulled from Chroma before the per-paper cap
+CANDIDATE_PER_PAPER = 4 # max chunks per paper among the reranker candidates: a title match can't fill the pool
 CANDIDATE_K = 20        # vector-search candidates sent to the reranker
 TOP_K = 5               # max reranked chunks passed to the LLM
 MIN_RERANK_SCORE = 0.1  # 0-1; chunks below this are dropped, and if none pass the API refuses
