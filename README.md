@@ -14,19 +14,23 @@ Most fitness chatbots coach behavior. None retrieve from actual research papers 
 Curate   new OpenAlex candidates + every manifest paper (re-fetched) → relevance gate → score
          → min-score cut → included if it has a valid PDF (up to 20 new downloads per run, best first)
          → manifest (included or excluded + reason)
-Ingest   included papers → drop front matter and references → chunks → embeddings
-         → rebuild Chroma from scratch (metadata on every chunk)
-Ask      question → embed → top-20 candidates (Chroma)
-                 → cross-encoder rerank → drop chunks below relevance threshold
+Ingest   included papers → strip line numbers, front matter and references → label sections
+         → chunks (never crossing a section) → embed "Paper: title. Section: …" + chunk
+         → rebuild Chroma from scratch (metadata and section on every chunk)
+Ask      question → under 3 words and no fitness term? refuse, no search
+                 → embed → top-20 candidates (Chroma)
+                 → cross-encoder rerank (header + chunk) → drop chunks below relevance threshold
                  → none left? refuse, no LLM call
-                 → top-5 excerpts → LLM (Ollama) → answer
+                 → top-5 excerpts, max 2 per paper → LLM (Ollama, temperature 0) → answer
                  → citation validator → sources + flagged invented citations
 ```
 
 - **Curation metadata survives ingest.** Title, year, journal, DOI, study design and quality score are stored on every chunk, so citations link to real papers.
-- **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Curation score breaks near-ties, so a meta-analysis edges out a weaker study.
-- **Honest refusal.** If no chunk clears `MIN_RERANK_SCORE`, the API says so instead of guessing.
-- **Citation validation.** Every `[paper_id]` in the answer is checked against the retrieved papers. Invented IDs and author-style citations (`[Cribb et al.]`, `[Smith 2019]`) are flagged; brackets that aren't citations (`[P < 0.05]`, `[n = 12]`, `[95% CI …]`) are ignored.
+- **Section labels.** Every chunk is labelled `abstract`, `introduction`, `methods`, `results`, `discussion` or `unknown`. Introductions mostly summarise *other* studies, so they are ranked lower and the LLM is told not to present them as the cited paper's own findings.
+- **Contextual headers.** Each chunk is embedded and reranked as `Paper: <title>. Section: <section>.` + the chunk, so a chunk saying "we found…" still carries its paper and section. Chroma stores the raw chunk.
+- **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Rank score = logit + `QUALITY_WEIGHT` × curation score − `INTRO_PENALTY` (introduction chunks only). The cross-encoder logit runs about −11 to +11, so quality breaks near-ties without overriding a clearly better match. At most `MAX_CHUNKS_PER_PAPER` chunks per paper reach the LLM, so one paper can't crowd out the rest.
+- **Honest refusal.** Short off-topic questions ("hi", "thanks!") are refused before searching. Otherwise, if no chunk's relevance (sigmoid of the logit, 0–1) clears `MIN_RERANK_SCORE`, the API says so instead of guessing.
+- **Citation validation.** Every `[paper_id]` and parenthesised `(paper_id)` in the answer is checked against the retrieved papers. Invented IDs and bracketed author-style citations (`[Cribb et al.]`, `[Smith 2019]`) are flagged; brackets that aren't citations (`[P < 0.05]`, `[n = 12]`, `[95% CI …]`) and author-style text in parentheses are ignored.
 
 ## Stack
 
@@ -101,7 +105,11 @@ cp .env.example .env           # then edit OPENALEX_MAILTO / OPENALEX_API_KEY
    ```
    Every run rebuilds Chroma from scratch using only papers the manifest marks as included. It builds into a staging collection and swaps it in at the end, so a failed run leaves the old index working. It prints a warning listing excluded papers and any PDFs in `data/papers/` that aren't in the manifest; neither is ingested. (`--reset` is still accepted but does nothing.)
 
-   Before chunking, front matter (repository cover pages, author lists, everything before an `Abstract` heading) and the reference list are dropped. Tables and figures that come after the references in author manuscripts are kept. If a paper has no `Abstract` heading, nothing is cut from the front.
+   Before chunking, line numbers in author manuscripts are stripped (only when most lines start with a rising number, so numeric table rows survive), then front matter (repository cover pages, author lists, everything before an `Abstract` heading) and the reference list are dropped. Tables and figures that come after the references in author manuscripts are kept. If a paper has no `Abstract` heading, nothing is cut from the front.
+
+   The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. `Methods`/`Results`/`Conclusions` lines inside a structured abstract stay part of the abstract. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
+
+   **Re-ingest after pulling these changes.** Contextual headers and section labels change the embeddings, so the collection is now `sciencefit_v3` and is empty until you run `python -m src.ingest --reset`.
 
 3. **Run API** (terminal 1):
    ```bash
@@ -135,13 +143,32 @@ Response:
   "sources": [
     {"paper_id": "schoenfeld_2017", "title": "…", "year": 2017, "journal": "…",
      "doi": "https://doi.org/…", "design": "meta_analysis", "curated": true,
-     "cited": true, "relevance": 0.94, "chunks": [12, 13]}
+     "cited": true, "relevance": 0.94,
+     "chunks": [{"index": 12, "section": "results"}, {"index": 4, "section": "introduction"}]}
   ],
   "unverified_citations": []
 }
 ```
 
-`refused: true` means no excerpt cleared the relevance threshold, so no LLM call was made. `unverified_citations` lists citations the LLM made that aren't retrieved papers: unknown paper IDs and author-style citations like `[Cribb et al.]`.
+`refused: true` means the question was short and off-topic, or no excerpt cleared the relevance threshold; either way no LLM call was made. `relevance` is the 0–1 sigmoid of the best chunk's reranker logit. `unverified_citations` lists citations the LLM made that aren't retrieved papers: unknown paper IDs and author-style citations like `[Cribb et al.]`.
+
+### Smoke eval
+
+`evals/smoke.json` holds seven questions with the papers each should cite (or `must_refuse`). Run them against the live index (Ollama running):
+
+```bash
+python -m evals.run_smoke > evals/new.txt     # compare with evals/baseline.txt
+```
+
+For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks and any unverified citations. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
+
+To tune the threshold without calling the LLM:
+
+```bash
+python -m src.rag "does training to failure increase hypertrophy?"
+```
+
+It prints each candidate's raw logit, 0–1 relevance, rank score, keep/drop and section.
 
 ### Tests
 
@@ -166,10 +193,14 @@ ScienceFit/
 │   ├── config.py         # paths, models, retrieval knobs
 │   ├── curate.py         # OpenAlex search + re-fetch → gate → score → judge → PDFs
 │   ├── manifest.py       # metadata bridge between curate and ingest
-│   ├── ingest.py         # PaperLoader, split_sections, Chunker, VectorStore
-│   ├── rerank.py         # cross-encoder reranker
+│   ├── ingest.py         # PaperLoader, line numbers, sections, Chunker, contextual headers, VectorStore
+│   ├── rerank.py         # cross-encoder reranker (raw logits)
 │   ├── rag.py            # retrieve → rerank → refuse/generate → validate
 │   └── api.py            # FastAPI endpoints
+├── evals/
+│   ├── smoke.json        # smoke questions + expected papers
+│   ├── run_smoke.py      # runs them through RAG().ask()
+│   └── baseline.txt      # output before the retrieval changes
 └── tests/
     └── test_pipeline.py
 ```
@@ -181,14 +212,20 @@ Tune in `src/config.py`:
 | Setting            | Default                                | Notes                                           |
 |--------------------|----------------------------------------|-------------------------------------------------|
 | `LLM_MODEL`        | `llama3.2:3b`                          | Any Ollama model; no re-ingest needed           |
+| `LLM_TEMPERATURE`  | 0                                      | Deterministic decoding for repeatable evals     |
+| `LLM_SEED`         | 42                                     | Ollama sampling seed                            |
 | `EMBED_MODEL`      | `nomic-embed-text`                     | Changing it requires re-running `ingest`        |
 | `RERANK_MODEL`     | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Any Hugging Face cross-encoder                  |
-| `CHUNK_SIZE`       | 800                                    | Characters per chunk                            |
+| `COLLECTION`       | `sciencefit_v3`                        | Bumped when embeddings change; re-ingest after  |
+| `CHUNK_SIZE`       | 800                                    | Characters per chunk; changing it needs a re-ingest |
 | `CHUNK_OVERLAP`    | 150                                    | Preserves context across splits                 |
 | `CANDIDATE_K`      | 20                                     | Vector-search candidates sent to the reranker   |
 | `TOP_K`            | 5                                      | Max excerpts passed to the LLM                  |
-| `MIN_RERANK_SCORE` | 0.1                                    | 0–1; below this a chunk is dropped              |
-| `QUALITY_WEIGHT`   | 0.1                                    | How much curation score breaks relevance ties   |
+| `MIN_RERANK_SCORE` | 0.1                                    | 0–1 (sigmoid of logit); below this a chunk is dropped |
+| `QUALITY_WEIGHT`   | 0.5                                    | Logit bonus × curation score (0–1); breaks near-ties |
+| `INTRO_PENALTY`    | 2.0                                    | Logits subtracted from introduction chunks      |
+| `MAX_CHUNKS_PER_PAPER` | 2                                  | Cap per paper among the `TOP_K` excerpts        |
+| `FITNESS_TERMS`    | 28 words                               | Questions under 3 words need one of these (plurals ok) |
 | `CURATE_QUERIES`   | 8 queries                              | OpenAlex searches; candidates split across them |
 | `CURATE_CANDIDATES`| 1000                                   | Total candidates fetched (200 per page)         |
 | `CURATE_TARGET_PDFS`| 20                                    | New PDFs downloaded per run (not a library cap) |

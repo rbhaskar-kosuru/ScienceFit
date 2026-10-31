@@ -1,0 +1,109 @@
+Auto check 6/7. Manual review Oct 28: 2/7 fully correct (Q4, Q7); Q1, Q3, Q5 misattributed background as findings; Q2 crowded out by lopez_2020; Q6 not refused.
+(Generated before section labels, logit ranking, per-paper cap and temperature 0; answers sampled at default temperature.)
+
+Q1  PASS  How many sets per week for strength gains?
+    expected:   ralston_2017 | currier_2026
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  ralston_2017, behm_2023, currier_2026
+    cited:      ralston_2017
+    unverified: -
+    answer:     According to [ralston_2017], multiple-set programs produced larger increases in strength compared with single-set programs (p < 0.002). The optimal weekly set volume range for strength gain is not established, but it is recommended to complete at least two sets per exercise.
+                
+                Note that the range of sets per week is not explicitly stated in [ralston_2017], so more information about this topic would be needed from other sources.
+
+Q2  PASS  Does training to failure increase hypertrophy?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, lopez_2020
+    cited:      grgic_2021, lopez_2020
+    unverified: -
+    answer:     [lopez_2020] indicates that the relationship between training to failure and muscle hypertrophy is not load-dependent, with some studies showing no obvious effect ([paper_id] 17). However, other studies suggest that both training options (to or not to muscle failure) can produce similar improvements in muscular strength and/or hypertrophy ([paper_id] 18).
+                
+                [grgic_2021] notes that the evidence on this topic is inconsistent, with some studies suggesting that training to failure results in greater increases in muscular strength and/or hypertrophy ([paper_id] 5), while others indicate that both options can produce similar improvements ([paper_id] 9, [paper_id] 16).
+
+Q3  PASS  Are heavy or light loads better for hypertrophy?
+    expected:   lopez_2020 | carvalho_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  carvalho_2022, lopez_2020, behm_2023
+    cited:      carvalho_2022, lopez_2020, behm_2023
+    unverified: Schoenfeld et al. (2017)
+    answer:     [carvalho_2022]
+                
+                The evidence suggests that protocols with heavier loads induce greater gains in muscle size and strength compared to lighter loads.
+                
+                Specifically, higher loads (e.g., 4 x 3-5RM) induced greater increases in muscle fiber cross-sectional area (CSA) and strength compared to a lower-load protocol (i.e., 2 x 20-28RM).
+                
+                [lopez_2020]
+                
+                No differences were observed in muscle hypertrophy between high- and low-load, moderate- and low-load, or high- and moderate-load resistance training.
+                
+                [behm_2023]
+                
+                The findings of [Schoenfeld et al. (2017)] suggest that matching total work between heavier and lighter load conditions does not yield additional increases in muscle hypertrophy.
+                
+                However, lower loads (e.g., 30% 1RM) may still be effective for improving physical fitness, as they can elicit neural adaptations and provide similar muscle hypertrophic responses to higher intensity loads.
+
+Q4  PASS  Does protein supplementation increase muscle gains from resistance training?
+    expected:   morton_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  morton_2017
+    cited:      morton_2017
+    unverified: -
+    answer:     [morton_2017]
+                
+                Yes, dietary protein supplementation significantly enhances changes in muscle strength and size during prolonged resistance exercise training (RET) in healthy adults.
+                
+                According to the study, protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute to RET-induced gains in fat-free mass (FFM). However, with protein supplementation, protein intakes of 1.62 g/kg/day resulted in no further gains in FFM.
+                
+                [morton_2017]
+                
+                The study found that dietary protein supplementation significantly increased changes in:
+                
+                * One-repetition-maximum strength by 2.49 kg
+                * Fat-free mass (FFM) by 0.30 kg
+                * Muscle size, as measured by muscle fibre cross-sectional area (CSA), by 310 µm² and mid-femur CSA by 7.2 mm²
+                
+                The impact of protein supplementation on gains in FFM was reduced with increasing age (-0.01 kg) and was more effective in resistance-trained individuals (0.75 kg).
+                
+                [morton_2017]
+                
+                There is no clear answer to the question of whether protein supplementation increases muscle gains from resistance training for all participants, as the study suggests that older individuals may require higher per-meal protein doses to achieve similar rates of muscle protein synthesis (MPS).
+
+Q5  PASS  Does creatine with whey improve hypertrophy from resistance training?
+    expected:   cribb_2007
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  cribb_2007, cribb_2006
+    cited:      cribb_2007
+    unverified: -
+    answer:     [cribb_2007]
+                
+                The study found that adding creatine to whey protein resulted in a greater gain in lean mass compared to whey protein or carbohydrate alone during RE training (CrM+WP > WP > CHO). 
+                
+                No specific hypertrophy results were reported for the CrW P group.
+
+Q6  FAIL  hi
+    expected:   must refuse
+    refused:    no
+    retrieved:  behm_2023, borde_2015
+    cited:      behm_2023
+    unverified: -
+    answer:     I'm not able to find any information in the provided excerpts about a specific answer to your question "hi". 
+                
+                However, according to [behm_2023], circuit training can be used to make training more dynamic and improve cardiorespiratory fitness. The protocol involves combining principal movement pattern exercises in a circuit format or supersets.
+                
+                Note that no specific set/rep ranges, weights, or duration are provided in the excerpt for this answer.
+
+Q7  PASS  best pizza in New York
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Passed 6/7

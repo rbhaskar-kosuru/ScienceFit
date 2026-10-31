@@ -13,6 +13,8 @@ MANIFEST_PATH = DATA_DIR / "curation_manifest.json"
 
 # Models
 LLM_MODEL = "llama3.2:3b"  # llama3.1 (8B) froze an 8GB M3
+LLM_TEMPERATURE = 0        # deterministic decoding so eval runs are repeatable
+LLM_SEED = 42
 EMBED_MODEL = "nomic-embed-text"
 RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
@@ -21,7 +23,7 @@ DOC_PREFIX = "search_document: "
 QUERY_PREFIX = "search_query: "
 
 # Ingest
-COLLECTION = "sciencefit_v2"  # bump when the chunk schema or embedding scheme changes
+COLLECTION = "sciencefit_v3"  # bump when the chunk schema or embedding scheme changes
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 150
 EMBED_BATCH = 32
@@ -30,7 +32,16 @@ EMBED_BATCH = 32
 CANDIDATE_K = 20        # vector-search candidates sent to the reranker
 TOP_K = 5               # max reranked chunks passed to the LLM
 MIN_RERANK_SCORE = 0.1  # 0-1; chunks below this are dropped, and if none pass the API refuses
-QUALITY_WEIGHT = 0.1    # tie-break boost from the curation score (design, journal, citations)
+# Ranking uses the cross-encoder's raw logit (about -11 to +11); the 0-1 sigmoid is only for MIN_RERANK_SCORE.
+QUALITY_WEIGHT = 0.5    # logit bonus x curation score (0-1): breaks near-ties, can't override a clearly better match
+INTRO_PENALTY = 2.0     # logits subtracted from introduction chunks: they describe other studies
+MAX_CHUNKS_PER_PAPER = 2  # cap per paper in the final TOP_K, so one paper can't crowd out the rest
+# Questions under 3 words with none of these terms are refused before searching ("hi", "thanks").
+FITNESS_TERMS = {
+    "set", "rep", "repetition", "squat", "bench", "deadlift", "press", "protein", "creatine", "whey",
+    "hypertrophy", "strength", "muscle", "training", "train", "workout", "lift", "lifting", "volume",
+    "failure", "load", "intensity", "1rm", "cardio", "exercise", "supplement", "frequency", "rest",
+}
 
 # Curation
 OPENALEX_MAILTO = os.getenv("OPENALEX_MAILTO", "")

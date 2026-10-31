@@ -1,4 +1,5 @@
-"""Ingest: included manifest papers → strip front matter and references → chunks → embeddings → Chroma.
+"""Ingest: included manifest papers → strip line numbers, front matter and references → label sections
+→ chunks (never crossing a section) → embeddings → Chroma.
 
 Always rebuilds from scratch into a staging collection, then swaps it in, so a failed run keeps the old index.
 """
@@ -23,6 +24,56 @@ FRONT_END = re.compile(r"^\s*(?:abstract|summary)\b", re.I | re.M)
 REFERENCES = re.compile(r"^\s*(?:\d+\.?\s*)?(?:references|bibliography|literature cited|reference list)\b", re.I | re.M)
 # Author manuscripts put tables and figures after the references; those are kept.
 AFTER_REFERENCES = re.compile(r"^\s*(?:\d+\s+)?(?:table|figure|fig\.|appendix|supplementary)\s*[a-z]?\d*\b", re.I | re.M)
+
+
+# Body section headings: the whole line, maybe numbered ("2.", "3.1"). Several headings map to one label.
+HEADING = re.compile(r"^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?(abstract|summary|introduction|background|materials and methods|"
+                     r"methods|methodology|results|discussion|conclusions?|practical applications|limitations)"
+                     r"[ \t]*:?[ \t]*$", re.I | re.M)
+SECTION_LABELS = {
+    "abstract": "abstract", "summary": "abstract",
+    "introduction": "introduction", "background": "introduction",
+    "materials and methods": "methods", "methods": "methods", "methodology": "methods",
+    "results": "results",
+    "discussion": "discussion", "conclusion": "discussion", "conclusions": "discussion",
+    "practical applications": "discussion", "limitations": "discussion",
+}
+LINE_NUMBER = re.compile(r"^[ \t]*(\d{1,4})(?=[ \t]|$)[ \t]*", re.M)
+
+
+def strip_line_numbers(text: str) -> str:
+    """Author manuscripts number every line ("457 REFERENCES"). Strip them only when most lines start with an
+    increasing number, so numeric table rows in ordinary PDFs are left alone."""
+    lines = [line for line in text.splitlines() if line.strip()]
+    numbers = [int(m.group(1)) for line in lines if (m := LINE_NUMBER.match(line))]
+    if len(numbers) < 0.4 * len(lines) or len(numbers) < 2:
+        return text
+    rising = sum(b > a for a, b in zip(numbers, numbers[1:])) / (len(numbers) - 1)
+    return LINE_NUMBER.sub("", text) if rising >= 0.8 else text
+
+
+def label_sections(text: str) -> list[tuple[str, str]]:
+    """[(label, text)] split at body headings; text before the first heading is "unknown". Inside an abstract,
+    "Methods"/"Results"/"Conclusions" lines are a structured abstract, so they're ignored until "Introduction"
+    (or until 20% into the text)."""
+    marks, current = [], None
+    for m in HEADING.finditer(text):
+        label = SECTION_LABELS[" ".join(m.group(1).lower().split())]
+        if current == "abstract" and m.group(1).lower() != "introduction" and m.start() < len(text) * 0.2:
+            continue
+        if label != current:
+            marks.append((m.start(), label))
+            current = label
+    bounds = [(0, "unknown"), *marks, (len(text), "")]
+    return [(label, text[start:end]) for (start, label), (end, _) in zip(bounds, bounds[1:]) if text[start:end].strip()]
+
+
+def contextual_header(title: str | None, section: str | None) -> str:
+    """"Paper: <title>. Section: <section>.\n", prepended to a chunk for embedding and reranking (not stored),
+    so a chunk that says "we found..." still carries what paper and section it comes from. Unknown parts are left out."""
+    parts = [f"Paper: {title}." if title else "", f"Section: {section}." if section and section != "unknown" else ""]
+    header = " ".join(p for p in parts if p)
+    return header + "\n" if header else ""
 
 
 def split_sections(text: str) -> tuple[str, str, str]:
@@ -66,7 +117,7 @@ class PaperLoader:
             if not pdf.is_file():
                 print(f"Warning: {r['paper_id']} is included but {pdf.name or 'its PDF'} is missing; skipped.")
                 continue
-            yield r["paper_id"], split_sections(self._extract(pdf))[1], self._meta(r)
+            yield r["paper_id"], split_sections(strip_line_numbers(self._extract(pdf)))[1], self._meta(r)
 
     def warnings(self) -> list[str]:
         """Excluded manifest papers and PDFs the manifest doesn't know about. Neither is ingested."""
@@ -114,15 +165,17 @@ class VectorStore:
         self.collection.modify(name=name)
         self.name = name
 
-    def add(self, paper_id: str, chunks: list[str], meta: dict) -> None:
+    def add(self, paper_id: str, chunks: list[str], meta: dict, sections: list[str] | None = None) -> None:
         self.collection.delete(where={"paper": paper_id})  # re-ingesting a paper replaces its old chunks
         if not chunks:
             return
+        sections = sections or ["unknown"] * len(chunks)
         self.collection.add(
             ids=[f"{paper_id}::{i}" for i in range(len(chunks))],
-            embeddings=embed([config.DOC_PREFIX + c for c in chunks]),
-            documents=chunks,
-            metadatas=[{**meta, "paper": paper_id, "chunk_index": i} for i in range(len(chunks))],
+            embeddings=embed([config.DOC_PREFIX + contextual_header(meta.get("title"), sec) + c
+                              for c, sec in zip(chunks, sections)]),
+            documents=chunks,  # raw text: the header is only for embedding
+            metadatas=[{**meta, "paper": paper_id, "chunk_index": i, "section": sec} for i, sec in enumerate(sections)],
         )
 
     def query(self, question: str, k: int = config.CANDIDATE_K) -> list[dict]:
@@ -151,10 +204,15 @@ def ingest_all(papers_dir: Path = config.PAPERS_DIR, records: list[dict] | None 
     store = VectorStore(path, name=config.COLLECTION + "_staging", reset=True)
     total = 0
     for paper_id, text, meta in loader.load():
-        chunks = chunker.split(text)
-        store.add(paper_id, chunks, meta)
+        chunks, sections = [], []
+        for label, section_text in label_sections(text):
+            pieces = chunker.split(section_text)
+            chunks += pieces
+            sections += [label] * len(pieces)
+        store.add(paper_id, chunks, meta, sections)
         total += len(chunks)
-        print(f"[{paper_id}] {len(chunks)} chunks")
+        counts = ", ".join(f"{label} {sections.count(label)}" for label in dict.fromkeys(sections))
+        print(f"[{paper_id}] {len(chunks)} chunks ({counts})")
     store.promote()
     return total
 

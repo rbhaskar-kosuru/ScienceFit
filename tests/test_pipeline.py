@@ -4,22 +4,27 @@ import math
 import pytest
 from src import curate, ingest, manifest
 from src.ingest import Chunker, PaperLoader, VectorStore
-from src.rag import RAG, NO_EVIDENCE, validate_citations
+from src.rag import RAG, NO_EVIDENCE, SYSTEM_PROMPT, build_prompt, select, validate_citations
 
 
 class FakeStore:
     def __init__(self, hits):
         self.hits = hits
+        self.queries = []
 
     def query(self, question, k=20):
+        self.queries.append(question)
         return [dict(h) for h in self.hits]
 
 
 class FakeReranker:
+    """Returns fixed raw logits, like the real cross-encoder."""
     def __init__(self, scores):
         self.scores = scores
+        self.passages = []
 
     def score(self, question, passages):
+        self.passages = passages
         return self.scores[:len(passages)]
 
 
@@ -34,16 +39,16 @@ def paper(author, doi, year=2017):
 
 def test_refuses_without_calling_llm_when_nothing_is_relevant():
     calls = []
-    rag = RAG(FakeStore([hit("a_2020"), hit("b_2021")]), FakeReranker([0.01, 0.02]),
+    rag = RAG(FakeStore([hit("a_2020"), hit("b_2021")]), FakeReranker([-6.0, -4.0]),  # sigmoid 0.002, 0.018
               lambda system, prompt: calls.append(prompt) or "unused")
-    res = rag.ask("Hi")
+    res = rag.ask("How many sets for hypertrophy?")
     assert res == {"answer": NO_EVIDENCE, "refused": True, "sources": [], "unverified_citations": []}
     assert calls == []
 
 
 def test_answer_keeps_relevant_sources_and_flags_invented_citations():
     rag = RAG(FakeStore([hit("schoenfeld_2017", title="Volume", year=2017), hit("helms_2018")]),
-              FakeReranker([0.9, 0.05]),
+              FakeReranker([3.0, -5.0]),
               lambda system, prompt: "Ten or more weekly sets [schoenfeld_2017]. See also [aagaard_2003].")
     res = rag.ask("How many sets for hypertrophy?")
     assert not res["refused"]
@@ -54,7 +59,7 @@ def test_answer_keeps_relevant_sources_and_flags_invented_citations():
 
 def test_quality_score_breaks_relevance_ties():
     rag = RAG(FakeStore([hit("weak_2010", score=0.3), hit("strong_2019", score=0.9)]),
-              FakeReranker([0.8, 0.8]), lambda s, p: "x")
+              FakeReranker([2.0, 2.0]), lambda s, p: "x")
     assert [h["paper"] for h in rag.rerank("q", rag.store.query("q"))] == ["strong_2019", "weak_2010"]
 
 
@@ -369,3 +374,119 @@ def test_ingest_rebuilds_from_scratch_and_swaps_in_only_when_done(tmp_path, monk
     store = VectorStore(path=tmp_path)
     assert store.count() == 1 and store.query("q")[0]["paper"] == "new_2020"
     assert [c.name for c in store.client.list_collections()] == [ingest.config.COLLECTION]
+
+
+def test_smoke_check_passes_on_expected_citation_or_required_refusal():
+    from evals.run_smoke import check
+    answer = {"refused": False, "unverified_citations": ["Smith 2019"],
+              "sources": [{"paper_id": "lopez_2020", "cited": False}, {"paper_id": "behm_2023", "cited": True}]}
+    result = check({"expect_any": ["lopez_2020"]}, answer)
+    assert (result["passed"], result["expected_retrieved"]) == (False, True)  # retrieved but not cited
+    assert check({"expect_any": ["behm_2023"]}, answer)["passed"]
+    refusal = {"refused": True, "unverified_citations": [], "sources": []}
+    assert check({"must_refuse": True}, refusal)["passed"] and not check({"must_refuse": True}, answer)["passed"]
+
+
+# --- Sections, contextual headers, ranking ---
+
+
+def test_strip_line_numbers_only_for_numbered_manuscripts():
+    manuscript = "455 Methods\n456 Ten sets per week.\n457 REFERENCES\n458 1. Smith J.\n"
+    assert ingest.strip_line_numbers(manuscript) == "Methods\nTen sets per week.\nREFERENCES\n1. Smith J.\n"
+    table = "Table 2\nGroup Sets Gain\nHigh 20 5.1\nLow 10 3.2\n12 participants dropped out\n"
+    assert ingest.strip_line_numbers(table) == table
+
+
+def test_label_sections_splits_body_and_keeps_structured_abstract_whole():
+    abstract = "Abstract\nBackground\nWe asked about volume.\nMethods\nTwenty men.\nResults\nGains rose.\n"
+    body = ("1. Introduction\nEarlier studies found X.\n" + "Filler.\n" * 40 + "2. Methods\nWe recruited.\n"
+            "Results\nStrength rose 10%.\nDiscussion\nThis agrees.\nConclusions\nDo more sets.\n")
+    labels = [label for label, _ in ingest.label_sections("Title page\n" + abstract + body)]
+    assert labels == ["unknown", "abstract", "introduction", "methods", "results", "discussion"]
+    sections = dict(ingest.label_sections(abstract + body))
+    assert "Gains rose" in sections["abstract"] and "Do more sets" in sections["discussion"]
+
+
+def test_label_sections_without_headings_is_one_unknown_section():
+    text = "We found larger gains with more sets.\nNo headings anywhere.\n"
+    assert ingest.label_sections(text) == [("unknown", text)]
+
+
+def test_ingest_embeds_contextual_header_but_stores_raw_chunk(tmp_path, monkeypatch):
+    embedded = []
+    monkeypatch.setattr(ingest, "embed", lambda texts: embedded.extend(texts) or [[1.0, 0.5, 0.2] for _ in texts])
+    store = VectorStore(path=tmp_path)
+    store.add("a_2020", ["We found gains.", "Prior work."], {"title": "Volume"}, ["results", "unknown"])
+    assert embedded == [ingest.config.DOC_PREFIX + "Paper: Volume. Section: results.\nWe found gains.",
+                        ingest.config.DOC_PREFIX + "Paper: Volume.\nPrior work."]
+    docs = {h["chunk_index"]: (h["text"], h["section"]) for h in store.query("q")}
+    assert docs == {0: ("We found gains.", "results"), 1: ("Prior work.", "unknown")}
+
+
+def test_reranker_scores_header_and_text():
+    reranker = FakeReranker([1.0])
+    RAG(FakeStore([]), reranker, None).rerank("q", [hit("a_2020", title="Volume", section="methods")])
+    assert reranker.passages == ["Paper: Volume. Section: methods.\nexcerpt from a_2020"]
+
+
+def test_excerpt_header_shows_section_and_prompt_warns_about_introductions():
+    prompt = build_prompt("q", [hit("carvalho_2022", section="introduction", title="Failure", year=2022,
+                                    journal="Sports Med", design="review"),
+                                hit("lee_2019", section="unknown", title="Load")])
+    assert "[carvalho_2022] (Introduction) Failure | 2022 | Sports Med | review\nexcerpt" in prompt
+    assert "[lee_2019] Load\nexcerpt" in prompt
+    assert "Introduction" in SYSTEM_PROMPT and "as reviewed in [grgic_2021]" in SYSTEM_PROMPT
+    assert "[17]" in SYSTEM_PROMPT and "[paper_id]" not in SYSTEM_PROMPT + prompt
+
+
+def test_ranking_uses_logit_plus_quality_minus_intro_penalty(monkeypatch):
+    monkeypatch.setattr(ingest.config, "QUALITY_WEIGHT", 0.5)
+    monkeypatch.setattr(ingest.config, "INTRO_PENALTY", 2.0)
+    hits = [hit("intro_2020", section="introduction", score=1.0),  # 3.0 + 0.5 - 2.0 = 1.5
+            hit("result_2020", section="results", score=0.0),      # 2.0 + 0.0 = 2.0
+            hit("quality_2020", section="results", score=1.0)]     # 1.6 + 0.5 = 2.1
+    rag = RAG(FakeStore(hits), FakeReranker([3.0, 2.0, 1.6]), None)
+    ranked = rag.rerank("q", rag.store.query("q"))
+    assert [h["paper"] for h in ranked] == ["quality_2020", "result_2020", "intro_2020"]
+    assert ranked[2]["logit"] == 3.0 and ranked[2]["relevance"] == round(1 / (1 + math.exp(-3.0)), 4)
+
+
+def test_select_caps_chunks_per_paper_and_fills_with_others():
+    hits = [hit("lopez_2020", i) for i in range(4)] + [hit("grgic_2021"), hit("refalo_2022")]
+    chosen = select(hits, top_k=3, per_paper=2)
+    assert [(h["paper"], h["chunk_index"]) for h in chosen] == [("lopez_2020", 0), ("lopez_2020", 1), ("grgic_2021", 0)]
+
+
+def test_short_off_topic_question_is_refused_before_searching():
+    store, calls = FakeStore([hit("a_2020")]), []
+    rag = RAG(store, FakeReranker([5.0]), lambda s, p: calls.append(p) or "x")
+    for question in ("hi", "thanks!", "ok then?"):
+        assert rag.ask(question)["refused"]
+    assert store.queries == [] and calls == []
+    for question in ("creatine?", "more sets", "bench presses", "is protein useful here"):
+        assert not rag.ask(question)["refused"]
+    assert len(store.queries) == 4
+
+
+def test_validate_citations_checks_paper_ids_in_parentheses():
+    answer = "Gains rose (currier_2026). Others (smith_2019; grgic_2021) agree (Schoenfeld et al., 2017) (p < 0.05)."
+    cited, invented = validate_citations(answer, {"grgic_2021"})
+    assert cited == {"grgic_2021"}
+    assert invented == ["currier_2026", "smith_2019"]
+
+
+def test_sources_list_each_chunks_section():
+    rag = RAG(FakeStore([hit("a_2020", 0, section="results"), hit("a_2020", 3, section="introduction")]),
+              FakeReranker([3.0, 2.0]), lambda s, p: "Yes [a_2020].")
+    assert rag.ask("How many sets?")["sources"][0]["chunks"] == [{"index": 0, "section": "results"},
+                                                                {"index": 3, "section": "introduction"}]
+
+
+def test_smoke_check_flags_answers_cited_only_from_introductions():
+    from evals.run_smoke import check
+    def answer(*sections):
+        return {"refused": False, "unverified_citations": [], "sources": [
+            {"paper_id": "a_2020", "cited": True, "chunks": [{"index": i, "section": s} for i, s in enumerate(sections)]}]}
+    result = check({"expect_any": ["a_2020"]}, answer("introduction", "introduction"))
+    assert result["intro_only"] and result["cited_sections"] == {"a_2020": ["introduction", "introduction"]}
+    assert not check({"expect_any": ["a_2020"]}, answer("introduction", "results"))["intro_only"]

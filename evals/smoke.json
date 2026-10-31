@@ -1,0 +1,9 @@
+[
+  {"id": "Q1", "question": "How many sets per week for strength gains?", "expect_any": ["ralston_2017", "currier_2026"]},
+  {"id": "Q2", "question": "Does training to failure increase hypertrophy?", "expect_any": ["grgic_2021", "refalo_2022"]},
+  {"id": "Q3", "question": "Are heavy or light loads better for hypertrophy?", "expect_any": ["lopez_2020", "carvalho_2022"]},
+  {"id": "Q4", "question": "Does protein supplementation increase muscle gains from resistance training?", "expect_any": ["morton_2017"]},
+  {"id": "Q5", "question": "Does creatine with whey improve hypertrophy from resistance training?", "expect_any": ["cribb_2007"]},
+  {"id": "Q6", "question": "hi", "must_refuse": true},
+  {"id": "Q7", "question": "best pizza in New York", "must_refuse": true}
+]

@@ -12,11 +12,11 @@ class Reranker:
 
     @torch.no_grad()
     def score(self, question: str, passages: list[str]) -> list[float]:
-        """Relevance in 0-1 per passage (sigmoid of the cross-encoder logit)."""
+        """Raw cross-encoder logit per passage (about -11 to +11). Callers take the sigmoid for a 0-1 relevance."""
         if not passages:
             return []
         batch = self.tokenizer(
             [question] * len(passages), passages,
             padding=True, truncation=True, max_length=512, return_tensors="pt",
         )
-        return torch.sigmoid(self.model(**batch).logits.view(-1)).tolist()
+        return self.model(**batch).logits.view(-1).tolist()
