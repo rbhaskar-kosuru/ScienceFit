@@ -147,11 +147,12 @@ Response:
      "cited": true, "relevance": 0.94,
      "chunks": [{"index": 12, "section": "results"}, {"index": 4, "section": "introduction"}]}
   ],
-  "unverified_citations": []
+  "unverified_citations": [],
+  "no_citations": false
 }
 ```
 
-`refused: true` means the question was short and off-topic, or no excerpt cleared the relevance threshold; either way no LLM call was made. `relevance` is the 0–1 sigmoid of the best chunk's reranker logit. `unverified_citations` lists citations the LLM made that aren't retrieved papers: unknown paper IDs and author-style citations like `[Cribb et al.]`.
+`refused: true` means the question was short and off-topic, or no excerpt cleared the relevance threshold; either way no LLM call was made. `relevance` is the 0–1 sigmoid of the best chunk's reranker logit. `unverified_citations` lists citations the LLM made that aren't retrieved papers: unknown paper IDs and author-style citations like `[Cribb et al.]`. `no_citations: true` means the answer wasn't refused but cites none of its sources; the UI labels each source "✓ cited" or "retrieved, not cited" and shows a warning when `no_citations` is true.
 
 ### Smoke eval
 
