@@ -135,7 +135,9 @@ def validate_citations(answer: str, allowed: set[str]) -> tuple[set[str], list[s
     """Split citations into retrieved paper IDs and unverified ones. Paper IDs not retrieved and author-style
     citations ([Cribb et al.], [Smith 2019]) are unverified; brackets that aren't citations ([P < 0.05]) are ignored.
     Paper-ID-shaped tags in parentheses, (currier_2026), are checked too; other parenthesised text is not.
-    Paper IDs match case-insensitively and are returned lowercase ([Borde_2015] → borde_2015)."""
+    Paper IDs match case-insensitively and are returned lowercase ([Borde_2015] → borde_2015).
+    Markdown-escaped underscores count: [grgic\\_2021] renders as [grgic_2021], so it is grgic_2021."""
+    answer = answer.replace("\\_", "_")
     allowed = {a.lower() for a in allowed}
     cited, unverified = set(), []
     for group in CITATION.findall(answer):
@@ -177,8 +179,15 @@ def sources(hits: list[dict], cited: set[str]) -> list[dict]:
     return sorted(by_paper.values(), key=lambda s: (not s["cited"], -s["relevance"]))
 
 
+def cites_nothing(res: dict) -> bool:
+    """True for an answer (not a refusal) that has sources but cites none of them: the UI warns about it."""
+    return not res.get("refused") and bool(res.get("sources")) and not any(s.get("cited") for s in res["sources"])
+
+
 def response(answer: str, refused: bool = False, sources: list | None = None, unverified: list | None = None) -> dict:
-    return {"answer": answer, "refused": refused, "sources": sources or [], "unverified_citations": unverified or []}
+    res = {"answer": answer, "refused": refused, "sources": sources or [], "unverified_citations": unverified or []}
+    res["no_citations"] = cites_nothing(res)
+    return res
 
 
 def main() -> None:

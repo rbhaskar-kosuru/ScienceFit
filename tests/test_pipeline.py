@@ -42,7 +42,8 @@ def test_refuses_without_calling_llm_when_nothing_is_relevant():
     rag = RAG(FakeStore([hit("a_2020"), hit("b_2021")]), FakeReranker([-6.0, -4.0]),  # sigmoid 0.002, 0.018
               lambda system, prompt: calls.append(prompt) or "unused")
     res = rag.ask("How many sets for hypertrophy?")
-    assert res == {"answer": NO_EVIDENCE, "refused": True, "sources": [], "unverified_citations": []}
+    assert res == {"answer": NO_EVIDENCE, "refused": True, "sources": [], "unverified_citations": [],
+                   "no_citations": False}
     assert calls == []
 
 
@@ -531,3 +532,31 @@ def test_validate_citations_matches_paper_ids_case_insensitively_and_lowercases(
     cited, invented = validate_citations(answer, {"borde_2015", "carvalho_2022", "Lopez_2020"})
     assert cited == {"borde_2015", "carvalho_2022", "lopez_2020"}
     assert invented == ["grgic_2007", "smith_2019"]
+
+
+def test_validate_citations_accepts_markdown_escaped_underscores():
+    # [grgic\_2021] renders as [grgic_2021] in the UI, so it must count as a citation
+    answer = "No extra growth [grgic\\_2021], ([carvalho\\_2022]). Invented [smith\\_2019]."
+    cited, invented = validate_citations(answer, {"grgic_2021", "carvalho_2022"})
+    assert cited == {"grgic_2021", "carvalho_2022"}
+    assert invented == ["smith_2019"]
+
+
+def test_cites_nothing_flags_answers_whose_sources_are_all_uncited():
+    from src.rag import cites_nothing
+    def res(*cited, refused=False):
+        return {"refused": refused, "sources": [{"paper_id": f"p_{2020 + i}", "cited": c} for i, c in enumerate(cited)]}
+    assert cites_nothing(res(False, False))
+    assert not cites_nothing(res(True, False))
+    assert not cites_nothing(res(False, refused=True))
+    assert not cites_nothing(res())  # no sources: nothing to warn about
+
+
+def test_ask_response_carries_no_citations_flag():
+    def ask(answer, logit=3.0, question="How many sets?"):
+        return RAG(FakeStore([hit("a_2020")]), FakeReranker([logit]), lambda s, p: answer).ask(question)
+    assert ask("Yes [a_2020].")["no_citations"] is False
+    assert ask("Yes, more sets help.")["no_citations"] is True
+    assert ask("Yes [a\\_2020].")["no_citations"] is False  # escaped id still counts
+    assert ask("unused", logit=-10.0)["no_citations"] is False  # refused: nothing relevant
+    assert ask("unused", question="hi")["no_citations"] is False  # refused: off-topic
