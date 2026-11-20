@@ -4,6 +4,7 @@ data/chroma/*
 !data/papers/.gitkeep
 !data/chroma/.gitkeep
 data/curation_manifest.json
+data/curation_manifest.tmp
 
 # Python
 __pycache__/
@@ -16,3 +17,13 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# Tests
+.pytest_cache/
+
+# Claude Code (keep private)
+CLAUDE.md
+.claude/
+
+# Claude handoff files
+handoff/

@@ -1,0 +1,85 @@
+Q1  FAIL  How many sets per week for strength gains?
+    expected:   ralston_2017 | currier_2026
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  behm_2023, ralston_2017, carvalho_2022, borde_2015
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     The research suggests that multiple sets per exercise may be more effective for strength gains than single sets. A study by Radaelli et al. found that 5 sets of resistance training improved muscle strength and thickness more effectively, especially in the upper body (Borde_2015). Another study by Galbraith plots identified potential outliers, but did not provide a specific number of sets per week for optimal strength gains (Ralston_2017).
+                
+                However, it is worth noting that some studies suggest that 2-3 sets per exercise may be sufficient for strength gains, especially with longer training periods. A study by Harris et al. found that 4 sets per exercise over a period of 6 months was effective for muscle strength gains (Carvalho_2022).
+                
+                There is no clear consensus on the optimal number of sets per week for strength gains, but multiple sets per exercise may be more effective than single sets.
+
+Q2  PASS  Does training to failure increase hypertrophy?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, carvalho_2022, lopez_2020
+    cited:      grgic_2021, carvalho_2022, lopez_2020
+    sections:   grgic_2021: discussion, discussion; carvalho_2022: discussion; lopez_2020: abstract, discussion
+    unverified: -
+    answer:     Training to failure does not appear to decrease muscle hypertrophy; rather, it may be a beneficial strategy for gaining muscle mass, especially in untrained individuals or those approaching their genetic ceiling for muscular adaptations.
+                
+                The subgroup analysis of resistance-trained participants found that training to failure had a significant effect on muscle hypertrophy [grgic_2021]. This suggests that as an individual approaches their maximum capacity for muscular adaptation, a greater intensity of effort may be required to elicit further gains in muscle mass.
+                
+                A pooled meta-analysis also showed similar increases in muscle growth regardless of the magnitude of load when training is carried out under volume-matched conditions [carvalho_2022]. This implies that the dominant variable for promoting muscle hypertrophy is not necessarily the intensity of effort, but rather the overall training volume.
+                
+                In contrast, a study by Lopez et al. found that sets to failure were an effective strategy for gaining muscle hypertrophy in untrained individuals, regardless of the load used [lopez_2020]. This suggests that training to failure may be a useful approach for building muscle mass, particularly in novice subjects or those with limited experience with resistance training.
+
+Q3  PASS  Are heavy or light loads better for hypertrophy?
+    expected:   lopez_2020 | carvalho_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  carvalho_2022, lopez_2020, refalo_2022
+    cited:      carvalho_2022, lopez_2020
+    sections:   carvalho_2022: discussion, discussion; lopez_2020: discussion, results
+    unverified: -
+    answer:     Training with heavier loads appears to elicit greater gains in 1RM muscle strength compared to lower loads [carvalho_2022]. However, evidence suggests that even relatively light loads can increase strength when individual needs and abilities are considered [carvalho_2022]. A high-load resistance training program (≥80% of 1-RM) may be effective for targeting both outcomes in shorter periods of training, while a moderate range of repetitions is recommended for those who do not tolerate higher loads [lopez_2020].
+                
+                The results of the network analysis indicate that moderate-load and high-load resistance training are the best load for muscle hypertrophy in overall and high-quality subgroup analyses, respectively, but the ES values were unlikely to be considered meaningful [lopez_2020].
+
+Q4  FAIL  Does protein supplementation increase muscle gains from resistance training?
+    expected:   morton_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  morton_2017, cribb_2006, cribb_2007
+    cited:      -
+    sections:   -
+    unverified: grgic_2021
+    answer:     Protein supplementation has been shown to increase muscle gains from resistance training. Studies have consistently demonstrated that dietary protein supplementation significantly increases changes in strength (e.g., one-repetition-maximum) and muscle size (muscle fibre cross-sectional area, mid-femur CSA), as well as lean body mass (FFM). The impact of protein supplementation on FFM was reduced with increasing age and was more effective in resistance-trained individuals. However, protein supplementation beyond total protein intakes of 1.62 g/kg/day resulted in no further gains in FFM.
+                
+                [grgic_2021]
+
+Q5  FAIL  Does creatine with whey improve hypertrophy from resistance training?
+    expected:   cribb_2007
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  cribb_2007, cribb_2006, morton_2017
+    cited:      -
+    sections:   -
+    unverified: grgic_2007
+    answer:     According to the study by Crabb et al., taking creatine and whey protein together (CrW) during resistance exercise training may promote greater strength gains compared to other combinations, such as creatine and carbohydrate (CrCHO), or whey protein alone (WP-only). However, the study found that it was difficult to draw firm conclusions due to the small number of participants in each group.
+                
+                The results showed a significant increase in bench press strength with the CrW group, but not with the other groups. This suggests that combining creatine and whey protein may have an additive effect on muscle strength gains during resistance training [grgic_2007].
+
+Q6  PASS  hi
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Q7  PASS  best pizza in New York
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Passed 4/7

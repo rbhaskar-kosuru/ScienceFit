@@ -1,0 +1,95 @@
+Q1  PASS  How many sets per week for strength gains?
+    expected:   ralston_2017 | currier_2026
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  behm_2023, ralston_2017, borde_2015, carvalho_2022
+    cited:      behm_2023, ralston_2017, borde_2015
+    sections:   behm_2023: introduction; ralston_2017: results, discussion; borde_2015: discussion
+    unverified: -
+    answer:     The research suggests that there is no one-size-fits-all answer for the optimal number of sets per week for strength gains. However, a study by Ralston et al. (2017) found that programmes with 3-12 sets per exercise did not generate significant differences in outcomes [ralston_2017]. 
+                
+                A review of other studies suggests that multiple versus single sets may have a higher impact on muscle strength, particularly when combined with longer training periods. For example, Radaelli et al. (not cited in the excerpts) found that five sets per exercise improved muscle strength and thickness more effectively than one or three sets [borde_2015]. 
+                
+                A study by Behm et al. (2023) suggests that 2 days of resistance training per week with a volume of four sets may be sufficient for maximal strength gains, but this finding is specific to athletes and may not apply to the general population [behm_2023].
+                
+                Overall, it appears that there is no clear consensus on the optimal number of sets per week for strength gains, and more research is needed to determine the most effective training protocols.
+
+Q2  PASS  Does training to failure increase hypertrophy?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, carvalho_2022, lopez_2020
+    cited:      grgic_2021, carvalho_2022, lopez_2020
+    sections:   grgic_2021: discussion, discussion; carvalho_2022: discussion; lopez_2020: abstract, discussion
+    unverified: -
+    answer:     Training to failure appears to be associated with similar increases in muscle hypertrophy as non-failure training, especially among resistance-trained individuals (as reviewed in [grgic_2021]). However, a meta-analysis found that the magnitude of load is more important than the intensity of effort for promoting muscle strength gains (carvalho_2022). 
+                
+                For untrained or novice subjects, training to failure may be an effective strategy for gaining muscle hypertrophy, regardless of the load used in resistance training (lopez_2020).
+
+Q3  PASS  Are heavy or light loads better for hypertrophy?
+    expected:   lopez_2020 | carvalho_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  carvalho_2022, lopez_2020, refalo_2022
+    cited:      carvalho_2022, lopez_2020, refalo_2022
+    sections:   carvalho_2022: discussion, discussion; lopez_2020: discussion, results; refalo_2022: discussion
+    unverified: -
+    answer:     According to the research, training with higher loads elicits greater gains in 1RM muscle strength compared to lower loads [carvalho_2022]. However, it's also shown that even with relatively light loads, strength can be increased.
+                
+                A dose-response relationship has been observed, where the heaviest of loads provides the greatest strength-related benefit [carvalho_2022]. Nevertheless, individual needs and abilities should guide loading prescription from a hypertrophy standpoint.
+                
+                Research by López et al. suggests that high-load resistance training (≥80% of 1-RM) can target both muscle hypertrophy and strength in shorter periods of training, whereas moderate-range repetitions are necessary for those who don't tolerate higher loads [lopez_2020].
+                
+                Refalo et al.'s findings indicate that the optimal proximity-to-failure may vary depending on the load used. While there's no moderating effect of relative load on muscle hypertrophy (p = 0.525), future research should explore the interaction of RT variables with proximity-to-failure to foster insights into muscle hypertrophy [refalo_2022].
+
+Q4  PASS  Does protein supplementation increase muscle gains from resistance training?
+    expected:   morton_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  morton_2017, cribb_2006, cribb_2007
+    cited:      morton_2017, cribb_2006, cribb_2007
+    sections:   morton_2017: abstract, abstract; cribb_2006: abstract, discussion; cribb_2007: discussion
+    unverified: -
+    answer:     Protein supplementation has been shown to increase muscle gains from resistance training. According to Morton et al. ([morton_2017]), dietary protein supplementation significantly increased changes in strength, FFM (0.30 kg), and muscle size—muscle fibre cross-sectional area (CSA; 310 µm2) during periods of prolonged resistance exercise training (RET). The impact of protein supplementation on gains in FFM was reduced with increasing age (-0.01 kg) and was more effective in resistance-trained individuals (0.75 kg).
+                
+                Cribb et al. ([cribb_2006]) found that supplement-timing resulted in a greater increase in lean body mass and 1RM strength, as well as higher muscle creatine and glycogen values after the training program. This suggests that protein supplementation can enhance the adaptations desired from RE-training.
+                
+                However, it's worth noting that the benefits of protein supplementation may be reduced if total protein intakes exceed 1.62 g/kg/day ([morton_2017]). Additionally, the timing of protein supplementation may also play a role in its effectiveness, with some studies suggesting that supplement-timing can enhance the adaptations desired from RE-training ([cribb_2006], [cribb_2007]).
+
+Q5  PASS  Does creatine with whey improve hypertrophy from resistance training?
+    expected:   cribb_2007
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  cribb_2007, morton_2017, cribb_2006
+    cited:      cribb_2007, morton_2017
+    sections:   cribb_2007: discussion, abstract; morton_2017: abstract
+    unverified: -
+    answer:     According to the research, taking creatine with whey protein may promote greater hypertrophy (muscle growth) from resistance training.
+                
+                Cribb et al.'s study found that combining creatine and whey protein resulted in a significant increase in muscle strength compared to other groups [cribb_2007]. However, the study's results were limited by the small number of participants, making it difficult to draw firm conclusions about the effects of different supplement combinations.
+                
+                Cribb et al.'s abstract also suggests that the combination of creatine and whey protein may promote greater hypertrophy during resistance training. The authors note that further investigation is warranted to examine dose-responses and the extent of creatine accumulation in muscle [cribb_2007].
+                
+                Morton's review of existing research found that some studies have suggested that taking a protein supplement, including creatine, can improve muscle strength and hypertrophy during resistance training [morton_2017]. However, it is unclear whether the specific combination of creatine and whey protein has a unique effect on muscle growth.
+                
+                Overall, while the evidence is not yet conclusive, the available research suggests that taking creatine with whey protein may be beneficial for promoting hypertrophy from resistance training.
+
+Q6  PASS  hi
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Q7  PASS  best pizza in New York
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Passed 7/7

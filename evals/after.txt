@@ -1,0 +1,89 @@
+Q1  PASS  How many sets per week for strength gains?
+    expected:   ralston_2017 | currier_2026
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  ralston_2017
+    cited:      ralston_2017
+    sections:   ralston_2017: discussion, results
+    unverified: -
+    answer:     The meta-analysis found that there was no significant difference in strength gain between studies with different set volumes [ralston_2017] (Results). The mean number of sets reported ranged from 1 to 12 sets per week.
+
+Q2  PASS  Does training to failure increase hypertrophy?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, refalo_2022
+    cited:      grgic_2021, refalo_2022
+    sections:   grgic_2021: discussion, discussion; refalo_2022: abstract
+    unverified: -
+    answer:     [refalo_2022] (Abstract) Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy: A Systematic Review with Meta-analysis | 2022 | Sports Medicine | meta_analysis
+                ge for resistance training performed to set failure versus non-failure for muscle hypertro- phy in studies applying any definition of set failure [effect size=0.19 (95% confidence interval 0.00, 0.37), p =0.045], with no moderating effect of volume load (p =0.884) or relative load (p =0.525). 
+                
+                [grgic_2021] (Discussion) Effects of resistance training performed to repetition failure or non-failure on muscular strength and hypertrophy: A systematic review and meta-analysis | 2021 | Journal of sport and health science/Journal of Sport and Health Science | meta_analysis
+                e. However, we should again highlight that training to muscle failure does not appear to produce any detrimental effects on muscle hypertrophy. Still, it should be considered that the upper limit of the 95%CI in this analysis was 0.55, which is in the range of a large effect.
+                
+                [grgic_2021] (Discussion) Effects of resistance training performed to repetition failure or non-failure on muscular strength and hypertrophy: A systematic review and meta-analysis | 2021 | Journal of sport and health science/Journal of Sport and Health Science | meta_analysis
+                The subgroup analysis of studies that did not equate training volume between the groups stood out because it found that muscular strength gains favored training that did not include muscle failure.
+                
+                [grgic_2021] (Discussion) Effects of resistance training performed to repetition failure or non-failure on muscular strength and hypertrophy: A systematic review and meta-analysis | 2021 | Journal of sport and health science/Journal of Sport and Health Science | meta_analysis
+                Indeed, it is conceivable that, as an individual approaches his or her genetic ceiling for muscular adaptations, a greater intensity of effort may be required to elicit further gains.
+                
+                The research suggests that training to failure does not appear to decrease hypertrophy [refalo_2022], but the upper limit of the 95%CI was 0.55, indicating a large effect size. However, the subgroup analysis found no advantage for training to failure in terms of muscle hypertrophy [grgic_2021].
+
+Q3  PASS  Are heavy or light loads better for hypertrophy?
+    expected:   lopez_2020 | carvalho_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  carvalho_2022
+    cited:      carvalho_2022
+    sections:   carvalho_2022: discussion, discussion
+    unverified: Nóbrega et al., 2018, Ribeiro et al., 2019
+    answer:     The research suggests that training with higher loads elicits greater gains in muscle strength (as reviewed in [carvalho_2022]) but does not provide a clear answer on whether heavy or light loads are better for hypertrophy. However, it is noted that evidence indicates training with lower loads until concentric failure induces greater perceived effort and discomfort compared to higher loads ([carvalho_2022], [Nóbrega et al., 2018], [Ribeiro et al., 2019]).
+
+Q4  PASS  Does protein supplementation increase muscle gains from resistance training?
+    expected:   morton_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  morton_2017
+    cited:      morton_2017
+    sections:   morton_2017: discussion, discussion
+    unverified: -
+    answer:     [morton_2017] (Abstract) 
+                
+                [morton_2017] (Results)
+                
+                [morton_2017] (Discussion) Dietary protein supplementation augmented RET-induced increases in 1RM strength and FFM. For changes in FFM, dietary protein supplementation was more effective in resistance-trained individuals, less effective with increasing chronological age, and did not increase beyond total protein intakes of ~1.6 g/kg/day.
+                
+                [morton_2017] (Discussion) The postexercise protein dose did not affect the magnitude of muscle gain from RET.
+
+Q5  PASS  Does creatine with whey improve hypertrophy from resistance training?
+    expected:   cribb_2007
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  cribb_2007
+    cited:      cribb_2007
+    sections:   cribb_2007: discussion, discussion
+    unverified: -
+    answer:     [cribb_2007] (Discussion) suggests that supplementation with WP and/or CrM appears to promote greater strength gains and muscle hypertrophy during RE training. However, it does not provide a direct answer to whether creatine with whey improves hypertrophy from resistance training.
+                
+                The closest relevant finding is that the combination of creatine and whey resulted in a mean increase of 109 ± 24.1 kg in bench press (1RM) strength, which is greater than the control group (P = 0.03, effect size = 0.340).
+
+Q6  PASS  hi
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Q7  PASS  best pizza in New York
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Passed 7/7
