@@ -24,3 +24,6 @@ venv/
 # Claude Code (keep private)
 CLAUDE.md
 .claude/
+
+# Claude handoff files
+handoff/
