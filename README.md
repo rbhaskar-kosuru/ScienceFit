@@ -219,7 +219,7 @@ ScienceFit/
 │   ├── ingest.py         # PaperLoader, line numbers, sections, Chunker, contextual headers, VectorStore
 │   ├── rerank.py         # cross-encoder reranker (raw logits)
 │   ├── llm.py            # OpenAI-compatible client: retries, reasoning cleanup
-│   ├── prompts.py        # versioned prompts (v1, v2)
+│   ├── prompts.py        # versioned prompts (v1 to v4)
 │   ├── rag.py            # retrieve → rerank → refuse/generate → validate
 │   └── api.py            # FastAPI endpoints
 ├── evals/
@@ -241,7 +241,7 @@ Tune in `src/config.py` (the `LLM_*` settings marked `.env` are read from there)
 |--------------------|----------------------------------------|-------------------------------------------------|
 | `LLM_BASE_URL`     | `http://localhost:11434/v1`            | `.env`; any OpenAI-compatible API               |
 | `LLM_MODEL`        | `llama3.2:3b`                          | `.env`; no re-ingest needed                     |
-| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` or `v2` (see Results)              |
+| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` to `v4` (see Swapping the LLM)     |
 | `LLM_API_KEY`      | empty                                  | `.env`; not needed for Ollama                   |
 | `LLM_EXTRA_PARAMS` | empty                                  | `.env`; JSON of provider-only request fields    |
 | `LLM_TIMEOUT`      | 180                                    | Seconds per LLM request                         |
@@ -283,7 +283,11 @@ LLM_PROMPT_VERSION=v2
 
 Leave them blank for local Ollama with prompt v1. `LLM_EXTRA_PARAMS` takes provider-only request fields as JSON, e.g. `{"reasoning_effort": "low"}`. With a hosted LLM, the question and the retrieved excerpts are sent to that provider. Embeddings always use Ollama. Retrieval, reranking and validation stay the same.
 
-`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default) and `v2`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
+`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default), `v2`, `v3` and `v4`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
+
+`v3` is `v2` plus: a one-sentence direct answer first, then plain-language evidence, no unexplained numbers or technical statistics, 3–5 sentences.
+
+`v4` is `v3` revised for accuracy; it asks for a cited, supported opening sentence, comparison with the usual alternative, rounding but no calculating, no lab units, practical limits included, and second-hand findings marked "as reviewed in".
 
 ## Roadmap
 

@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler
 import pytest
 from src import config, llm
 from src.llm import LLMClient, LLMError, strip_reasoning
-from src.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_V2, get_prompt
+from src.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_V2, SYSTEM_PROMPT_V3, SYSTEM_PROMPT_V4, get_prompt
 from src.rag import RAG, normalise_brackets, validate_citations
 from tests.test_pipeline import FakeReranker, FakeStore, hit
 
@@ -39,6 +39,57 @@ V1_SYSTEM_PROMPT = (
     "\n"
     "If the excerpts genuinely lack the answer, say so briefly, then share the closest relevant "
     "findings that ARE in the excerpts (with their [id] citations). Keep answers concise."
+)
+
+
+# v2 as merged in PR #3. Never edit: v2's eval results belong to this text.
+V2_SYSTEM_PROMPT = (
+    "You are ScienceFit, a research assistant for resistance training. Answer the question using only the paper "
+    "excerpts in the user message. Each excerpt is wrapped in <excerpt id=\"...\" section=\"...\"> tags.\n"
+    "\n"
+    "Rules:\n"
+    "1. Cite only ids from the allowed list, always in square brackets: [id]. This includes \"as reviewed in [id]\".\n"
+    "2. Do not write author names or publication years in the text, and do not copy the excerpts' own reference "
+    "numbers.\n"
+    "3. Every claim must be supported by an excerpt. Put that excerpt's [id] right after the claim. Leave out "
+    "anything that does not help answer the question.\n"
+    "4. Excerpts with section=\"introduction\" describe other studies. Never present them as that paper's own "
+    "finding; write \"as reviewed in [id]\" instead.\n"
+    "5. Report numbers exactly as written in the excerpt, including set and rep ranges. Do not combine or "
+    "recalculate them.\n"
+    "6. If the excerpts do not answer the question, say so briefly, then give the closest relevant findings that "
+    "are in the excerpts.\n"
+    "\n"
+    "Output only the answer, concisely and in your own words. No preamble, no reasoning, no excerpt tags. "
+    "Do not moralize or add medical disclaimers: you are summarizing published research."
+)
+
+
+# v3 as evaluated. Never edit.
+V3_SYSTEM_PROMPT = (
+    "You are ScienceFit, a research assistant for resistance training. Answer the question using only the paper "
+    "excerpts in the user message. Each excerpt is wrapped in <excerpt id=\"...\" section=\"...\"> tags.\n"
+    "\n"
+    "Rules:\n"
+    "1. Cite only ids from the allowed list, always in square brackets: [id]. This includes \"as reviewed in [id]\".\n"
+    "2. Do not write author names or publication years in the text, and do not copy the excerpts' own reference "
+    "numbers.\n"
+    "3. Every claim must be supported by an excerpt. Put that excerpt's [id] right after the claim. Leave out "
+    "anything that does not help answer the question.\n"
+    "4. Excerpts with section=\"introduction\" describe other studies. Never present them as that paper's own "
+    "finding; write \"as reviewed in [id]\" instead.\n"
+    "5. Report numbers exactly as written in the excerpt, including set and rep ranges. Do not combine or "
+    "recalculate them.\n"
+    "6. If the excerpts do not answer the question, say so briefly, then give the closest relevant findings that "
+    "are in the excerpts.\n"
+    "7. Start with a one-sentence direct answer to the question: yes, no, it depends, or the excerpts don't say.\n"
+    "8. Then give the key evidence in plain language, for a reader who is not a scientist.\n"
+    "9. Include a number only if you say what it measures in everyday words. Skip technical units and statistics "
+    "(µm², CI, p-values, effect sizes) unless the question asks for them.\n"
+    "10. Keep it short: 3 to 5 sentences unless the question needs more.\n"
+    "\n"
+    "Output only the answer, concisely and in your own words. No preamble, no reasoning, no excerpt tags. "
+    "Do not moralize or add medical disclaimers: you are summarizing published research."
 )
 
 
@@ -210,6 +261,31 @@ def test_prompt_v2_is_selectable_and_has_no_example_ids():
     assert not re.search(r"\b[a-z][a-z0-9]*_\d{4}", system, re.I)
     assert "Allowed ids: b_2021, a_2020\n" in user
     assert '<excerpt id="b_2021" section="introduction">\nexcerpt from b_2021\n</excerpt>' in user
+
+
+def test_prompt_v2_is_identical_to_the_merged_prompt():
+    assert SYSTEM_PROMPT_V2 == V2_SYSTEM_PROMPT == get_prompt("v2").system
+
+
+def test_prompt_v3_keeps_v2_rules_and_has_no_example_ids():
+    import re
+    v3 = get_prompt("v3")
+    assert v3.system == SYSTEM_PROMPT_V3 and v3.build is get_prompt("v2").build
+    assert all(line in SYSTEM_PROMPT_V3.split("\n") for line in SYSTEM_PROMPT_V2.split("\n"))
+    assert "one-sentence direct answer" in SYSTEM_PROMPT_V3 and "plain language" in SYSTEM_PROMPT_V3
+    assert not re.search(r"\b[a-z][a-z0-9]*_\d{4}", SYSTEM_PROMPT_V3, re.I)
+
+
+def test_prompt_v3_is_identical_to_the_evaluated_prompt():
+    assert SYSTEM_PROMPT_V3 == V3_SYSTEM_PROMPT == get_prompt("v3").system
+
+
+def test_prompt_v4_exists_and_has_no_example_ids():
+    import re
+    v4 = get_prompt("v4")
+    assert v4.system == SYSTEM_PROMPT_V4 and v4.build is get_prompt("v2").build
+    assert "end with a citation" in SYSTEM_PROMPT_V4 and "Never multiply, add or combine" in SYSTEM_PROMPT_V4
+    assert not re.search(r"\b[a-z][a-z0-9]*_\d{4}", SYSTEM_PROMPT_V4, re.I)
 
 
 def test_smoke_report_shows_the_excerpts_the_model_saw():
