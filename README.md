@@ -26,7 +26,7 @@ Ask      question → under 3 words and no fitness term? refuse, no search
 ```
 
 - **Curation metadata survives ingest.** Title, year, journal, DOI, study design and quality score are stored on every chunk, so citations link to real papers.
-- **Section labels.** Every chunk is labelled `abstract`, `introduction`, `methods`, `results`, `discussion` or `unknown`. Introductions mostly summarise *other* studies, so they are ranked lower and the LLM is told not to present them as the cited paper's own findings.
+- **Section labels.** Every chunk is labelled `abstract`, `introduction`, `methods`, `results`, `discussion`, `table` or `unknown`. Introductions mostly summarise *other* studies, so they are ranked lower and the LLM is told not to present them as the cited paper's own findings.
 - **Delimited excerpts.** The LLM sees each chunk as `<excerpt id="grgic_2021" section="discussion">…</excerpt>`, with no title, journal or design inside, and is told to answer in its own words, cite with `[id]` and never reproduce the markup. The user prompt lists the allowed citation ids (the papers in the excerpts); the system prompt has no example paper ID, because the 3B model copied it into answers.
 - **Contextual headers.** Each chunk is embedded and reranked as `Paper: <title>. Section: <section>.` + the chunk, so a chunk saying "we found…" still carries its paper and section. Chroma stores the raw chunk.
 - **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Rank score = logit + `QUALITY_WEIGHT` × curation score − `INTRO_PENALTY` (introduction chunks only). Before reranking, Chroma returns the 100 closest chunks and at most `CANDIDATE_PER_PAPER` per paper go on, up to `CANDIDATE_K`: the title in the contextual header makes every chunk of a title-matching paper look close, and without this cap one paper filled all 20 slots. The cross-encoder logit runs about −11 to +11, so quality breaks near-ties without overriding a clearly better match. At most `MAX_CHUNKS_PER_PAPER` chunks per paper reach the LLM, so one paper can't crowd out the rest.
@@ -108,9 +108,11 @@ cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM
 
    Before chunking, line numbers in author manuscripts are stripped (only when most lines start with a rising number, so numeric table rows survive), then front matter (repository cover pages, author lists, everything before an `Abstract` heading) and the reference list are dropped. Tables and figures that come after the references in author manuscripts are kept. If a paper has no `Abstract` heading, nothing is cut from the front.
 
-   The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. `Methods`/`Results`/`Conclusions` lines inside a structured abstract stay part of the abstract. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
+   The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. Headings are compared without spaces or case, so small-caps ones (`REsulT s`, or one split over several lines) count. An abstract ends at a numbered heading, an `Introduction` heading or the keywords line; before that, `Methods`/`Results`/`Conclusions` lines are a structured abstract. With no `Introduction` heading, the text after the keywords is the introduction. If a section's heading is numbered, unnumbered lines with the same name (table columns) are ignored. Numbered topic sections of narrative reviews (`2 Training Frequency`) end the introduction and count as `discussion`. `table` covers tables, from the caption to the end of the page or until running text resumes, and everything kept after the references. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
 
-   **Re-ingest after pulling these changes.** Contextual headers and section labels change the embeddings, so the collection is now `sciencefit_v3` and is empty until you run `python -m src.ingest --reset`.
+   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks. It is stored and reported only; ranking and prompts don't use it yet.
+
+   **Re-ingest after pulling these changes.** New section labels change the embeddings and chunks now carry `secondhand`, so the collection is now `sciencefit_v4` and is empty until you run `python -m src.ingest --reset`. Restart the API afterwards. The old `sciencefit_v3` collection is left in place.
 
 3. **Run API** (terminal 1):
    ```bash
@@ -230,6 +232,7 @@ ScienceFit/
 └── tests/
     ├── conftest.py       # blanks LLM_* so tests ignore .env
     ├── test_llm.py
+    ├── test_sections.py  # section labels, second-hand flag
     └── test_pipeline.py
 ```
 
@@ -251,7 +254,7 @@ Tune in `src/config.py` (the `LLM_*` settings marked `.env` are read from there)
 | `LLM_SEED`         | 42                                     | Sampling seed                                   |
 | `EMBED_MODEL`      | `nomic-embed-text`                     | Changing it requires re-running `ingest`        |
 | `RERANK_MODEL`     | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Any Hugging Face cross-encoder                  |
-| `COLLECTION`       | `sciencefit_v3`                        | Bumped when embeddings change; re-ingest after  |
+| `COLLECTION`       | `sciencefit_v4`                        | Bumped when embeddings change; re-ingest after  |
 | `CHUNK_SIZE`       | 800                                    | Characters per chunk; changing it needs a re-ingest |
 | `CHUNK_OVERLAP`    | 150                                    | Preserves context across splits                 |
 | `CANDIDATE_POOL`   | 100                                    | Chunks pulled from Chroma before the per-paper cap |

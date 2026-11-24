@@ -32,7 +32,7 @@ DOC_PREFIX = "search_document: "
 QUERY_PREFIX = "search_query: "
 
 # Ingest
-COLLECTION = "sciencefit_v3"  # bump when the chunk schema or embedding scheme changes
+COLLECTION = "sciencefit_v4"  # bump when the chunk schema or embedding scheme changes
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 150
 EMBED_BATCH = 32
