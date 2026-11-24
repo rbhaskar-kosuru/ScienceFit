@@ -18,6 +18,9 @@ venv/
 .idea/
 .vscode/
 
+# Eval outputs: contain paper excerpts
+evals/runs/
+
 # Tests
 .pytest_cache/
 

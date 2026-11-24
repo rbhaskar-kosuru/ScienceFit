@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -12,7 +13,15 @@ CHROMA_DIR = DATA_DIR / "chroma"
 MANIFEST_PATH = DATA_DIR / "curation_manifest.json"
 
 # Models
-LLM_MODEL = "llama3.2:3b"  # llama3.1 (8B) froze an 8GB M3
+# LLM: any OpenAI-compatible API, set in .env. Blank or missing values use these defaults (local Ollama).
+LLM_BASE_URL = os.getenv("LLM_BASE_URL") or "http://localhost:11434/v1"
+LLM_MODEL = os.getenv("LLM_MODEL") or "llama3.2:3b"  # local: llama3.1 (8B) froze an 8GB M3
+LLM_PROMPT_VERSION = os.getenv("LLM_PROMPT_VERSION") or "v1"  # src/prompts.py; pick what suits the model
+LLM_API_KEY = os.getenv("LLM_API_KEY") or ""
+LLM_EXTRA_PARAMS = json.loads(os.getenv("LLM_EXTRA_PARAMS") or "{}")  # provider-only request fields, as JSON
+LLM_TIMEOUT = 180          # seconds per request
+LLM_MAX_RETRIES = 5        # on HTTP 429/5xx
+LLM_MAX_RETRY_WAIT = 60    # seconds; a longer Retry-After (e.g. daily quota used up) fails straight away
 LLM_TEMPERATURE = 0        # deterministic decoding so eval runs are repeatable
 LLM_SEED = 42
 EMBED_MODEL = "nomic-embed-text"

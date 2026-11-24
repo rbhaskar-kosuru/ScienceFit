@@ -21,7 +21,7 @@ Ask      question → under 3 words and no fitness term? refuse, no search
                  → embed → top-100 chunks (Chroma) → max 4 per paper → up to 20 candidates
                  → cross-encoder rerank (header + chunk) → drop chunks below relevance threshold
                  → none left? refuse, no LLM call
-                 → top-5 excerpts, max 2 per paper → LLM (Ollama, temperature 0) → answer
+                 → top-5 excerpts, max 2 per paper → LLM (temperature 0) → strip reasoning → answer
                  → citation validator → sources + flagged invented citations
 ```
 
@@ -37,7 +37,7 @@ Ask      question → under 3 words and no fitness term? refuse, no search
 
 | Layer      | Tool                                                  |
 |------------|-------------------------------------------------------|
-| LLM        | Ollama (`llama3.2:3b`) — local, free                  |
+| LLM        | Ollama (`llama3.2:3b`) by default; any OpenAI-compatible API |
 | Embeddings | Ollama (`nomic-embed-text`)                           |
 | Reranker   | `cross-encoder/ms-marco-MiniLM-L-6-v2` (Transformers) |
 | Vector DB  | Chroma (persistent, local, cosine)                    |
@@ -77,8 +77,8 @@ python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Optional: OpenAlex email ("polite pool") and free API key
-cp .env.example .env           # then edit OPENALEX_MAILTO / OPENALEX_API_KEY
+# Optional: OpenAlex email ("polite pool") and free API key, hosted LLM settings
+cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM_*
 ```
 
 ## Usage
@@ -156,13 +156,34 @@ Response:
 
 ### Smoke eval
 
-`evals/smoke.json` holds seven questions with the papers each should cite (or `must_refuse`). Run them against the live index (Ollama running):
+`evals/smoke.json` holds nine questions with the papers each should cite (or `must_refuse`). Run them against the live index (Ollama running):
 
 ```bash
-python -m evals.run_smoke > evals/new.txt     # compare with evals/baseline.txt
+mkdir -p evals/runs
+python -m evals.run_smoke > evals/runs/new.txt     # compare with evals/baseline.txt
+python -m evals.run_smoke --model MODEL --base-url URL --prompt-version v1   # override .env for one run
 ```
 
-For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks and any unverified citations. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
+The output starts with `LLM_MODEL` and `PROMPT_VERSION`. For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks, any unverified citations, the answer and the excerpts the model saw. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
+
+Outputs contain paper excerpts, so keep them in `evals/runs/` (gitignored). The tracked `evals/*.txt` files hold answers only.
+
+#### Results: model × prompt (November 2026)
+
+Auto-check passes out of 9 questions (2 of them must be refused), with identical retrieval:
+
+| Model                 | Prompt v1 | Prompt v2          |
+|-----------------------|-----------|--------------------|
+| `llama3.2:3b`         | 8/9       | 7/9                |
+| `openai/gpt-oss-120b` | 9/9*      | 9/9 (both of 2 runs) |
+
+Answers naming authors in the text: `llama3.2:3b` 6 (v1) → 2 (v2); `openai/gpt-oss-120b` 1 (v1) → 0 (v2, both runs).
+
+\* 4/9 as first run: 5 answers cited with `【id】`, which the validator then ignored. Re-checking the same saved answers with `【id】` read as `[id]` gives 9/9.
+
+- Recommended: `openai/gpt-oss-120b` + v2 for hosted, `llama3.2:3b` + v1 for local (v2 made the 3B model drop citations).
+- Hosted runs vary even at temperature 0 with a seed: 3 of 7 generated answers differed between two identical runs.
+- The auto-check only tests whether an expected paper is cited, not whether claims are faithful, and v2's rules were written from failures on these same questions.
 
 To tune the threshold without calling the LLM:
 
@@ -178,7 +199,7 @@ It prints each candidate's raw logit, 0–1 relevance, rank score, keep/drop and
 pytest
 ```
 
-Ollama and the reranker are faked, so tests run offline.
+Ollama and the reranker are faked, and the LLM client talks to a fake local HTTP server, so tests run offline.
 
 ## Project structure
 
@@ -186,7 +207,7 @@ Ollama and the reranker are faked, so tests run offline.
 ScienceFit/
 ├── app.py                # Streamlit UI
 ├── requirements.txt
-├── .env.example          # OPENALEX_MAILTO, OPENALEX_API_KEY
+├── .env.example          # OPENALEX_*, LLM_*
 ├── data/
 │   ├── papers/           # PDFs (gitignored)
 │   ├── chroma/           # vector store (gitignored)
@@ -197,25 +218,37 @@ ScienceFit/
 │   ├── manifest.py       # metadata bridge between curate and ingest
 │   ├── ingest.py         # PaperLoader, line numbers, sections, Chunker, contextual headers, VectorStore
 │   ├── rerank.py         # cross-encoder reranker (raw logits)
+│   ├── llm.py            # OpenAI-compatible client: retries, reasoning cleanup
+│   ├── prompts.py        # versioned prompts (v1, v2)
 │   ├── rag.py            # retrieve → rerank → refuse/generate → validate
 │   └── api.py            # FastAPI endpoints
 ├── evals/
 │   ├── smoke.json        # smoke questions + expected papers
 │   ├── run_smoke.py      # runs them through RAG().ask()
-│   └── baseline.txt      # output before the retrieval changes
+│   ├── *.txt             # tracked outputs, answers only
+│   └── runs/             # outputs with paper excerpts (gitignored)
 └── tests/
+    ├── conftest.py       # blanks LLM_* so tests ignore .env
+    ├── test_llm.py
     └── test_pipeline.py
 ```
 
 ## Configuration
 
-Tune in `src/config.py`:
+Tune in `src/config.py` (the `LLM_*` settings marked `.env` are read from there):
 
 | Setting            | Default                                | Notes                                           |
 |--------------------|----------------------------------------|-------------------------------------------------|
-| `LLM_MODEL`        | `llama3.2:3b`                          | Any Ollama model; no re-ingest needed           |
+| `LLM_BASE_URL`     | `http://localhost:11434/v1`            | `.env`; any OpenAI-compatible API               |
+| `LLM_MODEL`        | `llama3.2:3b`                          | `.env`; no re-ingest needed                     |
+| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` or `v2` (see Results)              |
+| `LLM_API_KEY`      | empty                                  | `.env`; not needed for Ollama                   |
+| `LLM_EXTRA_PARAMS` | empty                                  | `.env`; JSON of provider-only request fields    |
+| `LLM_TIMEOUT`      | 180                                    | Seconds per LLM request                         |
+| `LLM_MAX_RETRIES`  | 5                                      | Retries on HTTP 429/5xx, with backoff           |
+| `LLM_MAX_RETRY_WAIT` | 60                                   | Seconds; a longer `Retry-After` fails at once   |
 | `LLM_TEMPERATURE`  | 0                                      | Deterministic decoding for repeatable evals     |
-| `LLM_SEED`         | 42                                     | Ollama sampling seed                            |
+| `LLM_SEED`         | 42                                     | Sampling seed                                   |
 | `EMBED_MODEL`      | `nomic-embed-text`                     | Changing it requires re-running `ingest`        |
 | `RERANK_MODEL`     | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Any Hugging Face cross-encoder                  |
 | `COLLECTION`       | `sciencefit_v3`                        | Bumped when embeddings change; re-ingest after  |
@@ -239,7 +272,18 @@ Tune in `src/config.py`:
 
 ## Swapping the LLM
 
-To use Claude, GPT-4, Groq or any hosted model, pass a different `generate(system, prompt)` function to `RAG` (default: `ollama_generate` in `src/rag.py`). Retrieval, reranking and validation stay the same.
+Any OpenAI-compatible API works (Ollama, Groq, OpenRouter, Together, …). Set three variables in `.env`, plus the prompt version that suits the model, and restart the API:
+
+```bash
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_MODEL=openai/gpt-oss-120b
+LLM_API_KEY=your-key
+LLM_PROMPT_VERSION=v2
+```
+
+Leave them blank for local Ollama with prompt v1. `LLM_EXTRA_PARAMS` takes provider-only request fields as JSON, e.g. `{"reasoning_effort": "low"}`. With a hosted LLM, the question and the retrieved excerpts are sent to that provider. Embeddings always use Ollama. Retrieval, reranking and validation stay the same.
+
+`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default) and `v2`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
 
 ## Roadmap
 
