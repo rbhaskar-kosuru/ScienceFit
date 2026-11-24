@@ -1,0 +1,117 @@
+LLM_MODEL: openai/gpt-oss-120b
+PROMPT_VERSION: v1
+
+Q1  FAIL  How many sets per week for strength gains?
+    expected:   ralston_2017 | currier_2026
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  behm_2023, ralston_2017, carvalho_2022, borde_2015
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     Research on set volume shows that strength gains are achieved with relatively modest weekly totals, but higher volumes produce larger improvements.
+                
+                * A recent meta‑analysis of nine studies reported that the typical program used about **3 sets per session** (range 1–12) and averaged **≈3 sets** overall (≈3.1 ± 2.6) per workout, with training frequencies of ~2.8 sessions per week【ralston_2017】.  
+                * Sub‑analyses of those data identified a “medium” weekly set range of **5–9 sets per exercise per week** as effective for strength gains【ralston_2017】.  
+                * In a focused experimental comparison, young men performed **1, 3, or 5 sets per exercise** three times per week for six months; the multiple‑set conditions, especially the **five‑set protocol**, produced significantly greater strength and muscle‑thickness gains than the single‑set condition【borde_2015】.  
+                * A separate prescription study found that **four total sets per muscle group per week** (performed as two sets on two days) were sufficient to achieve maximal strength gains in generally active individuals, while **eight sets per week** (two sets on two days) were optimal for athletes【behm_2023】.
+                
+                **Putting these findings together:** most people can see meaningful strength improvements with **≈4 sets per week per muscle group**, and larger gains are observed when the weekly volume is increased to **5–9 sets** (or up to **8 sets** for more trained/athlete populations). Multiple sets per exercise (≥3) are consistently more effective than a single set.
+
+Q2  PASS  Does training to failure increase hypertrophy?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, carvalho_2022, lopez_2020
+    cited:      grgic_2021, carvalho_2022, lopez_2020
+    sections:   grgic_2021: discussion, discussion; carvalho_2022: discussion; lopez_2020: abstract, discussion
+    unverified: -
+    answer:     Research shows that training to volitional failure does **not** produce markedly larger muscle‑growth responses than training without reaching failure when the total work (volume) is equated. In untrained or novice participants, low‑load (≈30 % 1‑RM) and high‑load (≈80 % 1‑RM) protocols taken to failure generated almost identical increases in quadriceps volume (≈6.8 % vs 7.2 %) and vastus lateralis fiber cross‑sectional area (15–20 %) after 10 weeks [lopez_2020]. A meta‑analysis that matched training volume also found negligible differences in hypertrophy between failure and non‑failure sets (effect‑size differences of 0.01–0.04) [carvalho_2022].  
+                
+                However, a subgroup analysis of resistance‑trained individuals indicated that, for people who are already close to their genetic ceiling, training to failure may confer a **significant** additional hypertrophic benefit [grgic_2021]. Overall, the evidence suggests that failure training is not required for hypertrophy and yields similar gains to non‑failure training, with a possible advantage only in well‑trained athletes.
+
+Q3  FAIL  Are heavy or light loads better for hypertrophy?
+    expected:   lopez_2020 | carvalho_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  carvalho_2022, lopez_2020, refalo_2022
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     Research does not show a clear advantage of light loads over heavy loads for muscle hypertrophy. Meta‑analytic data indicate that both moderate‑load (≈9–15 RM) and high‑load (≥80 % 1‑RM, ≤8 RM) training produce the greatest hypertrophic gains, with only small and non‑meaningful differences between them【lopez_2020】. When total work is equated, heavier and lighter loads do not lead to additional hypertrophy, and the choice of load can be guided by individual preference or tolerance rather than a superiority of one over the other【carvalho_2022】. Moreover, analyses that consider proximity‑to‑failure find no significant moderating effect of relative load on hypertrophy outcomes, suggesting that load magnitude per se may be less important than how close to failure the sets are performed【refalo_2022】. In practice, both heavy and moderate loads can effectively stimulate hypertrophy, while light loads are not shown to be superior.
+
+Q4  FAIL  Does protein supplementation increase muscle gains from resistance training?
+    expected:   morton_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  morton_2017, cribb_2006, cribb_2007
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     Yes. Across many studies, adding dietary protein to a resistance‑training program produces measurable gains in both strength and muscle mass. A meta‑analysis of 49 trials (1,863 participants) found that protein supplementation increased one‑rep‑max strength by about 2.5 kg, added roughly 0.3 kg of fat‑free mass, and enlarged muscle‑fiber cross‑sectional area by ~310 µm² compared with training alone【morton_2017】.  
+                
+                In a controlled trial, participants who took protein (with or without creatine) showed larger increases in lean body mass and 1‑RM strength than non‑supplemented controls, together with greater type‑II fiber CSA and higher contractile‑protein content after the training period【cribb_2006】.  
+                
+                Discussion of that work suggests that frequent whey‑protein intake during the program likely boosted net protein balance—raising protein synthesis and contractile‑protein accrual—contributing to the observed hypertrophy and strength improvements【cribb_2007】.  
+                
+                Overall, the evidence indicates that protein supplementation reliably enhances muscle‑size and strength adaptations to resistance training.
+
+Q5  FAIL  Does creatine with whey improve hypertrophy from resistance training?
+    expected:   cribb_2007
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  cribb_2007, cribb_2006, morton_2017
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     Research that directly compared whey protein (WP) and creatine monohydrate (CrM) together with resistance training found modest evidence that the combination can boost muscle growth. In a double‑blind trial of resistance‑trained men, groups that received WP, CrM, or the two combined showed greater increases in lean mass and fiber‑type hypertrophy than a carbohydrate control, although the authors noted the small sample size limited the strength of the conclusion【cribb_2007】.  
+                
+                A related discussion of the same investigators’ work highlighted that timing the intake of WP, carbohydrate and CrM around the workout appeared to create a “favorable environment” that produced larger gains in both strength and hypertrophy compared with training alone【cribb_2006】. The authors also suggested that more efficient creatine accumulation from such timing could further enhance these adaptations, but they called for additional dose‑response studies to confirm the effect【cribb_2006】.  
+                
+                The systematic review by Morton et al. (2017) focused on protein supplementation without co‑ingestion of other agents such as creatine, so it does not provide direct evidence on the WP + CrM combination【morton_2017】.  
+                
+                **Bottom line:** The available experimental data (Cribb et al.) indicate that adding creatine to whey protein may produce greater hypertrophy than protein or creatine alone, but the evidence is limited by small participant numbers and further research is needed to draw firm conclusions.
+
+Q6  PASS  hi
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Q7  PASS  best pizza in New York
+    expected:   must refuse
+    refused:    yes
+    retrieved:  -
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     I couldn't find evidence for that in the ScienceFit library. Try rephrasing, or ask about a topic the ingested papers cover.
+
+Q8  FAIL  Does training to failure produce more muscle growth than stopping short of failure?
+    expected:   grgic_2021 | refalo_2022
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  grgic_2021, carvalho_2022, behm_2023, thompson_2019
+    cited:      -
+    sections:   -
+    unverified: -
+    answer:     Overall, the research does not show a clear advantage of training to failure for muscle hypertrophy. A systematic review and meta‑analysis found that, on average, training to failure produced muscle‑size gains that were comparable to those obtained when sets were stopped short of failure, and the effect was not consistently moderated by factors such as body region or exercise selection【grgic_2021】. In subgroup analyses, only resistance‑trained participants showed a modest additional hypertrophy benefit from training to failure, suggesting any advantage may be limited to more experienced lifters【grgic_2021】.  
+                
+                Other reviews have reported similarly mixed results: some studies suggest greater hypertrophy with failure training, while many report no extra growth compared with non‑failure protocols【behm_2023】. An additional discussion highlighted that acute studies show prolonged neuromuscular fatigue after failure sets and that no statistically significant differences in outcomes were observed when comparing failure versus non‑failure training【thompson_2019】.  
+                
+                Thus, the current evidence indicates that training to failure does not reliably produce more muscle growth than stopping short of failure, although a small benefit may exist for well‑trained individuals.
+
+Q9  PASS  How many sets per week maximize muscle hypertrophy?
+    expected:   currier_2026 | ralston_2017
+    refused:    no
+    expected paper retrieved: yes
+    retrieved:  currier_2026, carvalho_2022, grgic_2021, refalo_2022
+    cited:      currier_2026
+    sections:   currier_2026: discussion
+    unverified: -
+    answer:     Research suggests that muscle‑growth benefits level off after roughly 18–20 total sets per week for a given muscle group. Below that range, adding sets continues to improve hypertrophy, but beyond ~18–20 weekly sets the incremental gains become minimal. As a practical guideline, healthy adults should aim for at least two sets per exercise, building up to about 18–20 weekly sets to maximize hypertrophy [currier_2026].
+
+Passed 4/9

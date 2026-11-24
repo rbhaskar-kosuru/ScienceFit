@@ -4,7 +4,8 @@ import math
 import pytest
 from src import curate, ingest, manifest
 from src.ingest import Chunker, PaperLoader, VectorStore
-from src.rag import RAG, NO_EVIDENCE, SYSTEM_PROMPT, build_prompt, select, validate_citations
+from src.prompts import SYSTEM_PROMPT, build_prompt
+from src.rag import RAG, NO_EVIDENCE, select, validate_citations
 
 
 class FakeStore:

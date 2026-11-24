@@ -1,15 +1,36 @@
 """Smoke eval: run each question in smoke.json through RAG().ask() and report refusals and citations.
 
-    python -m evals.run_smoke > evals/baseline.txt
+    mkdir -p evals/runs
+    python -m evals.run_smoke > evals/runs/new.txt
+    python -m evals.run_smoke --model MODEL --base-url URL --prompt-version v1   # override .env / defaults
 
 A case passes if it must refuse and did, or if it answered and cited at least one expected paper.
 It also shows the sections of cited chunks and flags answers cited only from introduction chunks, which
-describe other studies (a pass/fail it doesn't change). Generation uses LLM_TEMPERATURE and LLM_SEED.
+describe other studies (a pass/fail it doesn't change). The excerpts the model saw follow each answer, so keep
+outputs in evals/runs/ (gitignored: no paper text in the repo). Generation uses LLM_TEMPERATURE and LLM_SEED.
 """
+import argparse
 import json
+import re
 from pathlib import Path
 
 CASES = Path(__file__).with_name("smoke.json")
+EXCERPT = re.compile(r'<excerpt id="([^"]+)"(?: section="([^"]+)")?>\n(.*?)\n</excerpt>', re.S)
+
+
+class Recorder:
+    """Passes generate() calls to the client and keeps the last prompt, so the report shows what the model saw."""
+    def __init__(self, client):
+        self.client = client
+        self.prompt = ""
+
+    def generate(self, system: str, prompt: str) -> str:
+        self.prompt = prompt
+        return self.client.generate(system, prompt)
+
+
+def excerpts(prompt: str) -> list[dict]:
+    return [{"id": pid, "section": section or "unknown", "text": text} for pid, section, text in EXCERPT.findall(prompt)]
 
 
 def check(case: dict, res: dict) -> dict:
@@ -28,7 +49,7 @@ def check(case: dict, res: dict) -> dict:
             "intro_only": bool(all_sections) and all(sec == "introduction" for sec in all_sections)}
 
 
-def report(case: dict, res: dict, result: dict) -> str:
+def report(case: dict, res: dict, result: dict, shown: list[dict]) -> str:
     expect = "must refuse" if case.get("must_refuse") else " | ".join(case["expect_any"])
     lines = [
         f"{case['id']}  {'PASS' if result['passed'] else 'FAIL'}  {case['question']}",
@@ -47,20 +68,35 @@ def report(case: dict, res: dict, result: dict) -> str:
         lines.append("    WARNING:    cited only from introduction chunks (background, not the papers' own findings)")
     lines += [
         "    answer:     " + res["answer"].strip().replace("\n", "\n                "),
+        f"    excerpts:   {len(shown)}",
     ]
+    for e in shown:
+        lines += [f"      [{e['id']}] section: {e['section']}", "        " + e["text"].replace("\n", "\n        ")]
     return "\n".join(lines)
 
 
-def main() -> None:
-    from src.rag import RAG  # loads the reranker; kept out of import so tests can use check()
+def main(argv: list[str] | None = None) -> None:
+    from src import config
+    from src.llm import LLMClient
+    from src.rag import RAG  # the reranker loads in RAG(); kept out of import so tests can use check()
 
-    rag, cases = RAG(), json.loads(CASES.read_text())
+    ap = argparse.ArgumentParser(description="Run the smoke eval.")
+    ap.add_argument("--model", help="default: LLM_MODEL")
+    ap.add_argument("--base-url", help="default: LLM_BASE_URL")
+    ap.add_argument("--prompt-version", default=config.LLM_PROMPT_VERSION, help="default: LLM_PROMPT_VERSION")
+    args = ap.parse_args(argv)
+
+    recorder = Recorder(LLMClient(base_url=args.base_url, model=args.model))
+    print(f"LLM_MODEL: {recorder.client.model}\nPROMPT_VERSION: {args.prompt_version}\n")
+    rag = RAG(generate=recorder.generate, prompt_version=args.prompt_version)
+    cases = json.loads(CASES.read_text())
     passed = 0
     for case in cases:
+        recorder.prompt = ""  # a refusal sends no prompt
         res = rag.ask(case["question"])
         result = check(case, res)
         passed += result["passed"]
-        print(report(case, res, result) + "\n")
+        print(report(case, res, result, excerpts(recorder.prompt)) + "\n", flush=True)
     print(f"Passed {passed}/{len(cases)}")
 
 

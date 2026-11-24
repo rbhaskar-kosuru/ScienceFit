@@ -3,34 +3,9 @@ import re
 import math
 import argparse
 
-import ollama
-
-from . import config
+from . import config, llm
 from .ingest import VectorStore, contextual_header
-
-SYSTEM_PROMPT = (
-    "You are ScienceFit, a research assistant for resistance training. "
-    "Answer the user's question directly and factually using the provided paper excerpts. "
-    "Report what the research shows, including specific numbers, set/rep ranges, and protocols. "
-    "Do NOT refuse, moralize, or add medical disclaimers — you are summarizing published research, not giving medical advice. "
-    "\n\n"
-    "Excerpts are wrapped in <excerpt id=\"...\" section=\"...\"> ... </excerpt> markup. The markup is for you "
-    "only: answer in your own words and never reproduce excerpt tags, ids, attributes or headers in the answer.\n"
-    "\n"
-    "Citation rules (strict):\n"
-    "- Cite with the excerpt's id in square brackets, written as [id]. Use ONLY the allowed ids listed with "
-    "the question; never invent or alter an id.\n"
-    "- Never cite author names or years that appear inside the excerpt text, and never copy the excerpts' "
-    "own reference numbers such as [17] or [3, 4].\n"
-    "- Tag every claim with the id of the excerpt it came from.\n"
-    "\n"
-    "Sections: an excerpt with section=\"introduction\" summarises OTHER studies as background. Never present "
-    "it as the cited paper's own finding; write \"as reviewed in [id]\" instead. Findings come from "
-    "abstract, results and discussion excerpts.\n"
-    "\n"
-    "If the excerpts genuinely lack the answer, say so briefly, then share the closest relevant "
-    "findings that ARE in the excerpts (with their [id] citations). Keep answers concise."
-)
+from .prompts import get_prompt
 
 NO_EVIDENCE = (
     "I couldn't find evidence for that in the ScienceFit library. "
@@ -46,23 +21,15 @@ SOURCE_FIELDS = ("title", "first_author", "year", "journal", "doi", "design", "c
 WORD = re.compile(r"[a-z0-9]+")
 
 
-def ollama_generate(system: str, prompt: str) -> str:
-    res = ollama.chat(
-        model=config.LLM_MODEL,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-        options={"temperature": config.LLM_TEMPERATURE, "seed": config.LLM_SEED},
-    )
-    return res["message"]["content"]
-
-
 class RAG:
-    def __init__(self, store=None, reranker=None, generate=ollama_generate):
+    def __init__(self, store=None, reranker=None, generate=llm.generate, prompt_version: str | None = None):
         self.store = store or VectorStore()
         if reranker is None:
             from .rerank import Reranker  # loads torch; kept out of module import
             reranker = Reranker()
         self.reranker = reranker
         self.generate = generate
+        self.prompt = get_prompt(prompt_version or config.LLM_PROMPT_VERSION)
 
     def ask(self, question: str, top_k: int = config.TOP_K) -> dict:
         if off_topic(question):
@@ -72,7 +39,7 @@ class RAG:
         hits = select(relevant, top_k)
         if not hits:
             return response(NO_EVIDENCE, refused=True)
-        answer = self.generate(SYSTEM_PROMPT, build_prompt(question, hits))
+        answer = normalise_brackets(self.generate(self.prompt.system, self.prompt.build(question, hits)))
         cited, unverified = validate_citations(answer, {h["paper"] for h in hits})
         return response(answer, sources=sources(hits, cited), unverified=unverified)
 
@@ -114,21 +81,9 @@ def off_topic(question: str) -> bool:
     return len(words) < 3 and not stems & config.FITNESS_TERMS
 
 
-def build_prompt(question: str, hits: list[dict]) -> str:
-    excerpts = "\n\n".join(format_excerpt(h) for h in hits)
-    ids = ", ".join(dict.fromkeys(h["paper"] for h in hits))
-    return (f"{excerpts}\n\nQuestion: {question}\n\n"
-            f"Allowed citation ids: {ids}\n"
-            "Answer in your own words. Cite only with an allowed id in the format [id]; "
-            "don't reproduce the excerpt markup.")
-
-
-def format_excerpt(h: dict) -> str:
-    """<excerpt id="carvalho_2022" section="introduction"> text </excerpt>. No title/journal/design, so there's
-    no header for the model to copy; unknown sections get no section attribute."""
-    section = h.get("section")
-    attr = f' section="{section}"' if section and section != "unknown" else ""
-    return f'<excerpt id="{h["paper"]}"{attr}>\n{h["text"]}\n</excerpt>'
+def normalise_brackets(answer: str) -> str:
+    """Some models cite as 【grgic_2021】; turn it into [grgic_2021] for the validator and the UI."""
+    return answer.replace("【", "[").replace("】", "]")
 
 
 def validate_citations(answer: str, allowed: set[str]) -> tuple[set[str], list[str]]:
