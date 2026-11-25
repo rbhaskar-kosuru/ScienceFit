@@ -112,7 +112,7 @@ cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM
 
    The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. Headings are compared without spaces or case, so small-caps ones (`REsulT s`, or one split over several lines) count. An abstract ends at a numbered heading, an `Introduction` heading or the keywords line; before that, `Methods`/`Results`/`Conclusions` lines are a structured abstract. With no `Introduction` heading, the text after the keywords is the introduction. If a section's heading is numbered, unnumbered lines with the same name (table columns) are ignored. Numbered topic sections of narrative reviews (`2 Training Frequency`) end the introduction and count as `discussion`. `table` covers tables, from the caption to the end of the page or until running text resumes, and everything kept after the references. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
 
-   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks, except that every chunk of a `narrative_review` paper has it. It is stored only; ranking and prompts don't use it yet.
+   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks, except that every chunk of a `narrative_review` paper has it. Prompt `v5` shows it to the model; ranking and the other prompts don't use it.
 
    **Re-ingest after pulling these changes.** New section labels change the embeddings and chunks now carry `secondhand`, so the collection is now `sciencefit_v4` and is empty until you run `python -m src.ingest --reset`. Restart the API afterwards. The old `sciencefit_v3` collection is left in place.
 
@@ -168,7 +168,7 @@ python -m evals.run_smoke > evals/runs/new.txt     # compare with evals/baseline
 python -m evals.run_smoke --model MODEL --base-url URL --prompt-version v1   # override .env for one run
 ```
 
-The output starts with `LLM_MODEL` and `PROMPT_VERSION`. For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks, any unverified citations, the answer and the excerpts the model saw. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
+The output starts with `LLM_MODEL` and `PROMPT_VERSION` and ends with how many questions were answered (a question that errors or comes back empty is flagged, and the command exits with an error). For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks, any unverified citations, the answer and the excerpts the model saw. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
 
 Outputs contain paper excerpts, so keep them in `evals/runs/` (gitignored). The tracked `evals/*.txt` files hold answers only.
 
@@ -224,7 +224,7 @@ ScienceFit/
 │   ├── rerank.py         # cross-encoder reranker (raw logits)
 │   ├── llm.py            # OpenAI-compatible client: retries, reasoning cleanup
 │   ├── redact.py         # strips API keys from error text
-│   ├── prompts.py        # versioned prompts (v1 to v4)
+│   ├── prompts.py        # versioned prompts (v1 to v5)
 │   ├── rag.py            # retrieve → rerank → refuse/generate → validate
 │   └── api.py            # FastAPI endpoints
 ├── evals/
@@ -249,7 +249,7 @@ Tune in `src/config.py` (the `LLM_*` settings marked `.env` are read from there)
 |--------------------|----------------------------------------|-------------------------------------------------|
 | `LLM_BASE_URL`     | `http://localhost:11434/v1`            | `.env`; any OpenAI-compatible API               |
 | `LLM_MODEL`        | `llama3.2:3b`                          | `.env`; no re-ingest needed                     |
-| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` to `v4` (see Swapping the LLM)     |
+| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` to `v5` (see Swapping the LLM)     |
 | `LLM_API_KEY`      | empty                                  | `.env`; not needed for Ollama                   |
 | `LLM_EXTRA_PARAMS` | empty                                  | `.env`; JSON of provider-only request fields    |
 | `LLM_TIMEOUT`      | 180                                    | Seconds per LLM request                         |
@@ -291,11 +291,13 @@ LLM_PROMPT_VERSION=v2
 
 Leave them blank for local Ollama with prompt v1. `LLM_EXTRA_PARAMS` takes provider-only request fields as JSON, e.g. `{"reasoning_effort": "low"}`. With a hosted LLM, the question and the retrieved excerpts are sent to that provider. Embeddings always use Ollama. Retrieval, reranking and validation stay the same.
 
-`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default), `v2`, `v3` and `v4`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
+`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default) to `v5`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
 
 `v3` is `v2` plus: a one-sentence direct answer first, then plain-language evidence, no unexplained numbers or technical statistics, 3–5 sentences.
 
 `v4` is `v3` revised for accuracy; it asks for a cited, supported opening sentence, comparison with the usual alternative, rounding but no calculating, no lab units, practical limits included, and second-hand findings marked "as reviewed in".
+
+`v5` is `v2` plus one rule: excerpts tagged `secondhand="true"` (only v5 shows the tag) are cited "as reviewed in [id]", never as the paper's own finding.
 
 ## API keys
 

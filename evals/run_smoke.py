@@ -7,7 +7,8 @@
 A case passes if it must refuse and did, or if it answered and cited at least one expected paper.
 It also shows the sections of cited chunks and flags answers cited only from introduction chunks, which
 describe other studies (a pass/fail it doesn't change). The excerpts the model saw follow each answer, so keep
-outputs in evals/runs/ (gitignored: no paper text in the repo). Generation uses LLM_TEMPERATURE and LLM_SEED.
+outputs in evals/runs/ (gitignored: no paper text in the repo). A question that errors or comes back empty is
+flagged, and the last line says how many of the questions were answered. Generation uses LLM_TEMPERATURE and LLM_SEED.
 """
 import argparse
 import json
@@ -15,7 +16,7 @@ import re
 from pathlib import Path
 
 CASES = Path(__file__).with_name("smoke.json")
-EXCERPT = re.compile(r'<excerpt id="([^"]+)"(?: section="([^"]+)")?>\n(.*?)\n</excerpt>', re.S)
+EXCERPT = re.compile(r'<excerpt id="([^"]+)"(?: section="([^"]+)")?( secondhand="true")?>\n(.*?)\n</excerpt>', re.S)
 
 
 class Recorder:
@@ -30,7 +31,8 @@ class Recorder:
 
 
 def excerpts(prompt: str) -> list[dict]:
-    return [{"id": pid, "section": section or "unknown", "text": text} for pid, section, text in EXCERPT.findall(prompt)]
+    return [{"id": pid, "section": section or "unknown", "secondhand": bool(mark), "text": text}
+            for pid, section, mark, text in EXCERPT.findall(prompt)]
 
 
 def check(case: dict, res: dict) -> dict:
@@ -71,13 +73,14 @@ def report(case: dict, res: dict, result: dict, shown: list[dict]) -> str:
         f"    excerpts:   {len(shown)}",
     ]
     for e in shown:
-        lines += [f"      [{e['id']}] section: {e['section']}", "        " + e["text"].replace("\n", "\n        ")]
+        lines += [f"      [{e['id']}] section: {e['section']}{' secondhand' if e['secondhand'] else ''}", "        " + e["text"].replace("\n", "\n        ")]
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> None:
     from src import config
     from src.llm import LLMClient
+    from src.redact import redact
     from src.rag import RAG  # the reranker loads in RAG(); kept out of import so tests can use check()
 
     ap = argparse.ArgumentParser(description="Run the smoke eval.")
@@ -90,14 +93,25 @@ def main(argv: list[str] | None = None) -> None:
     print(f"LLM_MODEL: {recorder.client.model}\nPROMPT_VERSION: {args.prompt_version}\n")
     rag = RAG(generate=recorder.generate, prompt_version=args.prompt_version)
     cases = json.loads(CASES.read_text())
-    passed = 0
+    passed, failed = 0, []
     for case in cases:
         recorder.prompt = ""  # a refusal sends no prompt
-        res = rag.ask(case["question"])
+        try:
+            res = rag.ask(case["question"])
+            problem = None if res["answer"].strip() else "empty answer"
+        except Exception as e:  # one failed question must not hide the others
+            problem = f"{type(e).__name__}: {redact(e)}"
+        if problem:
+            failed.append(case["id"])
+            print(f"{case['id']}  ERROR  {case['question']}\n    {problem}\n", flush=True)
+            continue
         result = check(case, res)
         passed += result["passed"]
         print(report(case, res, result, excerpts(recorder.prompt)) + "\n", flush=True)
+    print(f"Answered {len(cases) - len(failed)} of {len(cases)}" + (f"  NOT ANSWERED: {', '.join(failed)}" if failed else ""))
     print(f"Passed {passed}/{len(cases)}")
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
