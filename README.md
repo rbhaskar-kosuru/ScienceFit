@@ -1,328 +1,141 @@
 # ScienceFit
 
-A RAG chatbot that answers resistance-training questions grounded in peer-reviewed research, with citations you can verify.
+ScienceFit is a RAG chatbot I built to answer resistance-training questions from a curated library of peer-reviewed papers. The model sees only retrieved passages, is told to cite every claim with a paper ID, and each ID is checked against what was retrieved. If no passage clears a relevance threshold, it refuses without calling the model. The library is 23 open-access papers (2,218 chunks). On a 7-question smoke test with `gpt-oss-120b`, 0 of 7 answers were judged wrong (3 good, 4 ok). It runs on an 8 GB MacBook Pro (M3) with a local 3B model, and any OpenAI-compatible model works through 3 `.env` settings.
 
-No bro-science. No YouTube guesses. Just retrieval over curated studies.
-
-## Why
-
-Most fitness chatbots coach behavior. None retrieve from actual research papers and cite them back. ScienceFit fills that gap: ask a question, get an answer traceable to the study it came from — or an honest "no evidence" when the library doesn't cover it.
-
-## How it works
-
-```
-Curate   new OpenAlex candidates + every manifest paper (re-fetched) → relevance gate → score
-         → min-score cut → included if it has a valid PDF (up to 20 new downloads per run, best first)
-         → manifest (included or excluded + reason)
-Ingest   included papers → strip line numbers, front matter and references → label sections
-         → chunks (never crossing a section) → embed "Paper: title. Section: …" + chunk
-         → rebuild Chroma from scratch (metadata and section on every chunk)
-Ask      question → under 3 words and no fitness term? refuse, no search
-                 → embed → top-100 chunks (Chroma) → max 4 per paper → up to 20 candidates
-                 → cross-encoder rerank (header + chunk) → drop chunks below relevance threshold
-                 → none left? refuse, no LLM call
-                 → top-5 excerpts, max 2 per paper → LLM (temperature 0) → strip reasoning → answer
-                 → citation validator → sources + flagged invented citations
+```mermaid
+flowchart TB
+    subgraph offline["Offline: build the library"]
+        direction LR
+        A["Curate<br/>OpenAlex + PubMed"] --> B["Ingest<br/>sections, chunks"] --> C[("Chroma<br/>2,218 chunks")]
+    end
+    subgraph online["Online: answer a question"]
+        direction LR
+        Q["Question"] --> R{"Off-topic?"}
+        R -- no --> S["Vector search<br/>top 100"] --> K["Rerank<br/>up to 20"] --> T{"Above<br/>threshold?"}
+        T -- yes --> E["Select 5<br/>max 2 per paper"] --> P["Prompt"] --> L["LLM"] --> V["Citation check"] --> O["Answer + sources"]
+        R -- yes --> X["Refuse"]
+        T -- no --> X
+    end
+    C --> S
 ```
 
-- **Curation metadata survives ingest.** Title, year, journal, DOI, study design and quality score are stored on every chunk, so citations link to real papers.
-- **Section labels.** Every chunk is labelled `abstract`, `introduction`, `methods`, `results`, `discussion`, `table` or `unknown`. Introductions mostly summarise *other* studies, so they are ranked lower and the LLM is told not to present them as the cited paper's own findings.
-- **Delimited excerpts.** The LLM sees each chunk as `<excerpt id="grgic_2021" section="discussion">…</excerpt>`, with no title, journal or design inside, and is told to answer in its own words, cite with `[id]` and never reproduce the markup. The user prompt lists the allowed citation ids (the papers in the excerpts); the system prompt has no example paper ID, because the 3B model copied it into answers.
-- **Contextual headers.** Each chunk is embedded and reranked as `Paper: <title>. Section: <section>.` + the chunk, so a chunk saying "we found…" still carries its paper and section. Chroma stores the raw chunk.
-- **Two-stage retrieval.** Vector search is fast but coarse; the cross-encoder reads question and chunk together and reorders them. Rank score = logit + `QUALITY_WEIGHT` × curation score − `INTRO_PENALTY` (introduction chunks only). Before reranking, Chroma returns the 100 closest chunks and at most `CANDIDATE_PER_PAPER` per paper go on, up to `CANDIDATE_K`: the title in the contextual header makes every chunk of a title-matching paper look close, and without this cap one paper filled all 20 slots. The cross-encoder logit runs about −11 to +11, so quality breaks near-ties without overriding a clearly better match. At most `MAX_CHUNKS_PER_PAPER` chunks per paper reach the LLM, so one paper can't crowd out the rest.
-- **Honest refusal.** Short off-topic questions ("hi", "thanks!") are refused before searching. Otherwise, if no chunk's relevance (sigmoid of the logit, 0–1) clears `MIN_RERANK_SCORE`, the API says so instead of guessing.
-- **Citation validation.** Every `[paper_id]` and parenthesised `(paper_id)` in the answer is checked against the retrieved papers, case-insensitively (`(Borde_2015)` counts as `borde_2015`; reported IDs are lowercase). Invented IDs and bracketed author-style citations (`[Cribb et al.]`, `[Smith 2019]`) are flagged; brackets that aren't citations (`[P < 0.05]`, `[n = 12]`, `[95% CI …]`) and author-style text in parentheses are ignored.
+## How it got here
 
-## Stack
+| Iteration | Main change | Answers judged wrong (7 questions) |
+|---|---|---|
+| 1 | Cross-encoder reranker, refusal threshold, citation validator, curated papers (`llama3.2:3b`) | not scored on these questions |
+| 2 | Section labels, contextual headers, per-paper caps, allowed-ID list (`llama3.2:3b`, prompt v1) | 3 / 7 |
+| 3 | Generic LLM client, `gpt-oss-120b`, prompt v2 | 0 / 7 |
 
-| Layer      | Tool                                                  |
-|------------|-------------------------------------------------------|
-| LLM        | Ollama (`llama3.2:3b`) by default; any OpenAI-compatible API |
-| Embeddings | Ollama (`nomic-embed-text`)                           |
-| Reranker   | `cross-encoder/ms-marco-MiniLM-L-6-v2` (Transformers) |
-| Vector DB  | Chroma (persistent, local, cosine)                    |
-| Data       | OpenAlex API                                          |
-| Backend    | FastAPI                                               |
-| Frontend   | Streamlit                                             |
-| PDF parse  | pypdf                                                 |
+Seven questions is a smoke test, not a benchmark. The grades predate the latest re-ingest (better section labels, study designs from PubMed). A larger retrieval eval (recall, MRR) is next.
 
-Runs on an 8 GB Apple Silicon Mac. The reranker is ~90 MB and runs on CPU.
+## Quick start
 
-## Prerequisites
-
-- Python 3.10+
-- [Ollama](https://ollama.com) installed and running
-
-## Setup
+You need Python (developed on 3.13) and [Ollama](https://ollama.com) running.
 
 ```bash
-git clone https://github.com/rbhaskar-kosuru/ScienceFit.git
-cd ScienceFit
-
-# Install Ollama (one-time)
-# macOS:   brew install ollama
-# Linux:   curl -fsSL https://ollama.com/install.sh | sh
-# Windows: download from https://ollama.com/download
-
-# Start Ollama (macOS: or `brew services start ollama` to run it in the background)
-ollama serve &
-
-# In a new terminal, pull models
-ollama pull llama3.2:3b
-ollama pull nomic-embed-text
-ollama list   # both should show
-
-# Python env
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+git clone https://github.com/rbhaskar-kosuru/ScienceFit.git && cd ScienceFit
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+ollama pull llama3.2:3b && ollama pull nomic-embed-text
 
-# Optional: OpenAlex email ("polite pool") and free API key, hosted LLM settings
-cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM_*
+python -m src.curate      # find papers, download open-access PDFs
+python -m src.ingest      # build the index
+
+uvicorn src.api:app       # terminal 1
+streamlit run app.py      # terminal 2 (same venv)
 ```
 
-## Usage
+One curate run downloads up to 20 PDFs, so your library will differ from mine. The first API start downloads the reranker from Hugging Face. No `.env` is needed for a local run.
 
-1. **Curate papers** — fetch, score and rank from OpenAlex, download open-access PDFs:
-   ```bash
-   python -m src.curate                                    # CURATE_QUERIES, ~1,000 candidates, 20 PDFs
-   python -m src.curate --no-download                      # dry run: judge everything, no downloads, manifest untouched
-   python -m src.curate --rejudge                          # no search or downloads: re-score manifest papers, update flags
-   python -m src.curate "training to failure" --target 10  # single custom query
-   ```
-   Candidates are pulled 200 per page across `CURATE_QUERIES`, deduplicated by DOI and limited to open access. Articles and reviews (where OpenAlex files most meta-analyses) are fetched. A paper passes the relevance gate if it mentions a resistance-specific term (resistance, strength, hypertrophy, 1RM, …; `training` alone isn't enough) and no clinical or bench-science term. Matching is whole-word, so `strength` doesn't match `strengthen` and `randomized` doesn't match `non-randomized`. Score = 0.40 × citations (log scale, full marks at `CITATION_CAP`/year) + 0.35 × study design + 0.25 × trusted journal. Papers below `CURATE_MIN_SCORE` are cut.
-
-   Study design comes from the first of these that says something: (1) a title that declares itself a narrative review, position stand or consensus statement; (2) PubMed publication types (NCBI E-utilities; PMID from OpenAlex, or looked up by DOI for manifest papers); (3) keywords in the title, then the abstract. Title first, because PubMed tags some narrative reviews `Meta-Analysis` and some position stands only `Review`. Tiers: meta-analysis 1.0, systematic review 0.9, RCT 0.8, position stand 0.6, cohort 0.5, narrative review 0.4, observational 0.4, other 0.3. The manifest keeps `pmid`, `pubtypes` and `design_source` (`pubmed` or `keyword`) and reuses PubMed-based types on later runs. PubMed requests carry `tool` and your `OPENALEX_MAILTO` email; if PubMed fails, the run stops and the previous manifest is kept.
-
-   Every run judges **all** papers together: the new candidates plus every paper already in the manifest, re-fetched from OpenAlex by DOI so citation counts are current. A paper is included if it passes the gate, scores at least `CURATE_MIN_SCORE` and has a valid PDF; there's no cap on the library size. PDFs already on disk are reused. Walking best score first, up to `CURATE_TARGET_PDFS` new PDFs are downloaded per run, trying every open-access link.
-
-   `--rejudge` skips the search and downloads: it re-fetches only the manifest papers by DOI, re-scores them with the current rules and rewrites the included flags. Use it after changing the gate, weights or `CURATE_MIN_SCORE`.
-
-   PDFs are saved as `data/papers/<paper_id>.pdf` with readable IDs like `schoenfeld_2017`, and are never deleted. `data/curation_manifest.json` lists every judged paper with `"included": true|false` and, when excluded, a `"reason"` (`failed relevance gate`, `score 0.612 below 0.65`, `no valid PDF (HTTP 403)`, `no PDF on disk (not downloaded)`, `not found in OpenAlex`, …). Papers keep their IDs across runs. The manifest is only replaced when a run finishes; if anything fails, the previous one is kept and the command exits with an error.
-
-   OpenAlex bills each request against a daily budget (about 10 credits per search; without a key your IP shares 1,000 credits a day). A default run uses about 8 searches plus one lookup per 50 manifest papers.
-
-2. **Ingest** — chunk, embed, store in Chroma:
-   ```bash
-   python -m src.ingest
-   ```
-   Every run rebuilds Chroma from scratch using only papers the manifest marks as included. It builds into a staging collection and swaps it in at the end, so a failed run leaves the old index working. It prints a warning listing excluded papers and any PDFs in `data/papers/` that aren't in the manifest; neither is ingested. (`--reset` is still accepted but does nothing.)
-
-   Before chunking, line numbers in author manuscripts are stripped (only when most lines start with a rising number, so numeric table rows survive), then front matter (repository cover pages, author lists, everything before an `Abstract` heading) and the reference list are dropped. Tables and figures that come after the references in author manuscripts are kept. If a paper has no `Abstract` heading, nothing is cut from the front.
-
-   The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. Headings are compared without spaces or case, so small-caps ones (`REsulT s`, or one split over several lines) count. An abstract ends at a numbered heading, an `Introduction` heading or the keywords line; before that, `Methods`/`Results`/`Conclusions` lines are a structured abstract. With no `Introduction` heading, the text after the keywords is the introduction. If a section's heading is numbered, unnumbered lines with the same name (table columns) are ignored. Numbered topic sections of narrative reviews (`2 Training Frequency`) end the introduction and count as `discussion`. `table` covers tables, from the caption to the end of the page or until running text resumes, and everything kept after the references. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
-
-   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks, except that every chunk of a `narrative_review` paper has it. Prompt `v5` shows it to the model; ranking and the other prompts don't use it.
-
-   **Re-ingest after pulling these changes.** New section labels change the embeddings and chunks now carry `secondhand`, so the collection is now `sciencefit_v4` and is empty until you run `python -m src.ingest --reset`. Restart the API afterwards. The old `sciencefit_v3` collection is left in place.
-
-3. **Run API** (terminal 1):
-   ```bash
-   uvicorn src.api:app --reload
-   ```
-   The first start downloads the reranker (~90 MB) from Hugging Face.
-
-4. **Run UI** (terminal 2):
-   ```bash
-   streamlit run app.py
-   ```
-
-Open the Streamlit URL and ask something like *"What's the optimal weekly set volume for hypertrophy?"*
-
-### API
-
-```bash
-curl http://localhost:8000/health
-
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question": "optimal reps for hypertrophy?", "top_k": 5}'
-```
-
-Response:
-
-```json
-{
-  "answer": "… [schoenfeld_2017] …",
-  "refused": false,
-  "sources": [
-    {"paper_id": "schoenfeld_2017", "title": "…", "year": 2017, "journal": "…",
-     "doi": "https://doi.org/…", "design": "meta_analysis", "curated": true,
-     "cited": true, "relevance": 0.94,
-     "chunks": [{"index": 12, "section": "results"}, {"index": 4, "section": "introduction"}]}
-  ],
-  "unverified_citations": [],
-  "no_citations": false
-}
-```
-
-`refused: true` means the question was short and off-topic, or no excerpt cleared the relevance threshold; either way no LLM call was made. `relevance` is the 0–1 sigmoid of the best chunk's reranker logit. `unverified_citations` lists citations the LLM made that aren't retrieved papers: unknown paper IDs and author-style citations like `[Cribb et al.]`. `no_citations: true` means the answer wasn't refused but cites none of its sources; the UI labels each source "✓ cited" or "retrieved, not cited" and shows a warning when `no_citations` is true.
-
-### Smoke eval
-
-`evals/smoke.json` holds nine questions with the papers each should cite (or `must_refuse`). Run them against the live index (Ollama running):
-
-```bash
-mkdir -p evals/runs
-python -m evals.run_smoke > evals/runs/new.txt     # compare with evals/baseline.txt
-python -m evals.run_smoke --model MODEL --base-url URL --prompt-version v1   # override .env for one run
-```
-
-The output starts with `LLM_MODEL` and `PROMPT_VERSION` and ends with how many questions were answered (a question that errors or comes back empty is flagged, and the command exits with an error). For each question it reports PASS/FAIL, whether it refused, the retrieved and cited paper IDs, the sections of the cited papers' chunks, any unverified citations, the answer and the excerpts the model saw. Answers cited only from introduction chunks get a WARNING line (background, not the papers' own findings). A question passes if it cites at least one expected paper, or refuses when it must. It does not check that claims are faithful to the excerpts. Generation uses `LLM_TEMPERATURE = 0` and `LLM_SEED`, so reruns should be close but aren't guaranteed identical.
-
-Outputs contain paper excerpts, so keep them in `evals/runs/` (gitignored). The tracked `evals/*.txt` files hold answers only.
-
-#### Results: model × prompt (November 2026)
-
-Auto-check passes out of 9 questions (2 of them must be refused), with identical retrieval:
-
-| Model                 | Prompt v1 | Prompt v2          |
-|-----------------------|-----------|--------------------|
-| `llama3.2:3b`         | 8/9       | 7/9                |
-| `openai/gpt-oss-120b` | 9/9*      | 9/9 (both of 2 runs) |
-
-Answers naming authors in the text: `llama3.2:3b` 6 (v1) → 2 (v2); `openai/gpt-oss-120b` 1 (v1) → 0 (v2, both runs).
-
-\* 4/9 as first run: 5 answers cited with `【id】`, which the validator then ignored. Re-checking the same saved answers with `【id】` read as `[id]` gives 9/9.
-
-- Recommended: `openai/gpt-oss-120b` + v2 for hosted, `llama3.2:3b` + v1 for local (v2 made the 3B model drop citations).
-- Hosted runs vary even at temperature 0 with a seed: 3 of 7 generated answers differed between two identical runs.
-- The auto-check only tests whether an expected paper is cited, not whether claims are faithful, and v2's rules were written from failures on these same questions.
-
-To tune the threshold without calling the LLM:
-
-```bash
-python -m src.rag "does training to failure increase hypertrophy?"
-```
-
-It prints each candidate's raw logit, 0–1 relevance, rank score, keep/drop and section.
-
-### Tests
-
-```bash
-pytest
-```
-
-Ollama and the reranker are faked, and the LLM client talks to a fake local HTTP server, so tests run offline.
-
-## Project structure
-
-```
-ScienceFit/
-├── app.py                # Streamlit UI
-├── requirements.txt
-├── .env.example          # OPENALEX_*, LLM_*
-├── data/
-│   ├── papers/           # PDFs (gitignored)
-│   ├── chroma/           # vector store (gitignored)
-│   └── curation_manifest.json  # every judged paper: metadata, included, reason (gitignored)
-├── src/
-│   ├── config.py         # paths, models, retrieval knobs
-│   ├── curate.py         # OpenAlex search + re-fetch → gate → score → judge → PDFs
-│   ├── manifest.py       # metadata bridge between curate and ingest
-│   ├── ingest.py         # PaperLoader, line numbers, sections, Chunker, contextual headers, VectorStore
-│   ├── rerank.py         # cross-encoder reranker (raw logits)
-│   ├── llm.py            # OpenAI-compatible client: retries, reasoning cleanup
-│   ├── redact.py         # strips API keys from error text
-│   ├── prompts.py        # versioned prompts (v1 to v5)
-│   ├── rag.py            # retrieve → rerank → refuse/generate → validate
-│   └── api.py            # FastAPI endpoints
-├── evals/
-│   ├── smoke.json        # smoke questions + expected papers
-│   ├── run_smoke.py      # runs them through RAG().ask()
-│   ├── *.txt             # tracked outputs, answers only
-│   └── runs/             # outputs with paper excerpts (gitignored)
-└── tests/
-    ├── conftest.py       # blanks .env settings, blocks the network
-    ├── test_design.py    # study design: titles, PubMed types, keywords
-    ├── test_llm.py
-    ├── test_secrets.py   # no key in errors, output, logs or tracked files
-    ├── test_sections.py  # section labels, second-hand flag
-    └── test_pipeline.py
-```
-
-## Configuration
-
-Tune in `src/config.py` (the `LLM_*` settings marked `.env` are read from there):
-
-| Setting            | Default                                | Notes                                           |
-|--------------------|----------------------------------------|-------------------------------------------------|
-| `LLM_BASE_URL`     | `http://localhost:11434/v1`            | `.env`; any OpenAI-compatible API               |
-| `LLM_MODEL`        | `llama3.2:3b`                          | `.env`; no re-ingest needed                     |
-| `LLM_PROMPT_VERSION` | `v1`                                 | `.env`; `v1` to `v5` (see Swapping the LLM)     |
-| `LLM_API_KEY`      | empty                                  | `.env`; not needed for Ollama                   |
-| `LLM_EXTRA_PARAMS` | empty                                  | `.env`; JSON of provider-only request fields    |
-| `LLM_TIMEOUT`      | 180                                    | Seconds per LLM request                         |
-| `LLM_MAX_RETRIES`  | 5                                      | Retries on HTTP 429/5xx, with backoff           |
-| `LLM_MAX_RETRY_WAIT` | 60                                   | Seconds; a longer `Retry-After` fails at once   |
-| `LLM_TEMPERATURE`  | 0                                      | Deterministic decoding for repeatable evals     |
-| `LLM_SEED`         | 42                                     | Sampling seed                                   |
-| `EMBED_MODEL`      | `nomic-embed-text`                     | Changing it requires re-running `ingest`        |
-| `RERANK_MODEL`     | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Any Hugging Face cross-encoder                  |
-| `COLLECTION`       | `sciencefit_v4`                        | Bumped when embeddings change; re-ingest after  |
-| `CHUNK_SIZE`       | 800                                    | Characters per chunk; changing it needs a re-ingest |
-| `CHUNK_OVERLAP`    | 150                                    | Preserves context across splits                 |
-| `CANDIDATE_POOL`   | 100                                    | Chunks pulled from Chroma before the per-paper cap |
-| `CANDIDATE_PER_PAPER` | 4                                   | Max chunks per paper among reranker candidates  |
-| `CANDIDATE_K`      | 20                                     | Vector-search candidates sent to the reranker   |
-| `TOP_K`            | 5                                      | Max excerpts passed to the LLM                  |
-| `MIN_RERANK_SCORE` | 0.1                                    | 0–1 (sigmoid of logit); below this a chunk is dropped |
-| `QUALITY_WEIGHT`   | 0.5                                    | Logit bonus × curation score (0–1); breaks near-ties |
-| `INTRO_PENALTY`    | 2.0                                    | Logits subtracted from introduction chunks      |
-| `MAX_CHUNKS_PER_PAPER` | 2                                  | Cap per paper among the `TOP_K` excerpts        |
-| `FITNESS_TERMS`    | 28 words                               | Questions under 3 words need one of these (plurals ok) |
-| `CURATE_QUERIES`   | 8 queries                              | OpenAlex searches; candidates split across them |
-| `CURATE_CANDIDATES`| 1000                                   | Total candidates fetched (200 per page)         |
-| `CURATE_TARGET_PDFS`| 20                                    | New PDFs downloaded per run (not a library cap) |
-| `CURATE_MIN_SCORE` | 0.65                                   | 0–1 quality cutoff before download; `None` = no cut |
-| `CURATE_MAX_DOWNLOAD_ATTEMPTS` | 100                        | Safety cap on papers tried                      |
-| `CITATION_CAP`     | 50                                     | Citations/year that earns the full citation score |
-
-## Swapping the LLM
-
-Any OpenAI-compatible API works (Ollama, Groq, OpenRouter, Together, …). Set three variables in `.env`, plus the prompt version that suits the model, and restart the API:
+To use a hosted model, put this in `.env` (see `.env.example`) and restart the API:
 
 ```bash
 LLM_BASE_URL=https://api.groq.com/openai/v1
 LLM_MODEL=openai/gpt-oss-120b
-LLM_API_KEY=your-key
-LLM_PROMPT_VERSION=v2
+LLM_API_KEY=gsk_...
+LLM_PROMPT_VERSION=v2     # optional; the default is v1
 ```
 
-Leave them blank for local Ollama with prompt v1. `LLM_EXTRA_PARAMS` takes provider-only request fields as JSON, e.g. `{"reasoning_effort": "low"}`. With a hosted LLM, the question and the retrieved excerpts are sent to that provider. Embeddings always use Ollama. Retrieval, reranking and validation stay the same.
+The question and the retrieved passages are then sent to that provider. Embeddings and reranking stay local.
 
-`LLM_API_KEY` is never sent to `localhost`, `127.0.0.1` or `::1`. `<think>…</think>` text is stripped, any separate reasoning field is ignored and `【id】` citations become `[id]` before citations are validated. Prompts live in `src/prompts.py`: `v1` (default) to `v5`, set with `LLM_PROMPT_VERSION`; the smoke eval can override it with `--prompt-version`.
+All settings: [docs/configuration.md](docs/configuration.md). Endpoints: [docs/api.md](docs/api.md).
 
-`v3` is `v2` plus: a one-sentence direct answer first, then plain-language evidence, no unexplained numbers or technical statistics, 3–5 sentences.
+## How it works
 
-`v4` is `v3` revised for accuracy; it asks for a cited, supported opening sentence, comparison with the usual alternative, rounding but no calculating, no lab units, practical limits included, and second-hand findings marked "as reviewed in".
+1. **Curate** (`src/curate.py`). Searches OpenAlex with 8 queries, drops off-topic papers, scores the rest (40% citations, 35% study design, 25% journal) and keeps those at 0.65 or above with a valid PDF. Study design comes from a title that declares it, then PubMed publication types, then keywords. The title goes first because PubMed tags a narrative review in this library as a meta-analysis.
+2. **Ingest** (`src/ingest.py`). Strips front matter and references, labels sections, and cuts 800-character chunks that never cross a section. Each chunk is embedded with its paper title and section, because "we found…" means little without them. The index is built in a staging collection and swapped in, so a failed run keeps the old one.
+3. **Retrieve** (`src/rag.py`, `src/rerank.py`). Vector search returns the 100 closest chunks, at most 4 per paper go on, and a cross-encoder reranks up to 20. Vector search matches topic; the cross-encoder reads question and passage together, so it ranks passages that answer the question higher. Introductions rank lower, because they mostly describe other studies.
+4. **Answer** (`src/prompts.py`, `src/llm.py`). The top 5 passages, at most 2 per paper, go to the model with a list of allowed citation IDs. Passages carry an ID and a section but no title, so there is no header to copy. With no passage above the threshold, the model isn't called.
+5. **Verify** (`src/rag.py`). Every cited ID is checked against the retrieved papers. IDs that weren't retrieved and author-style citations are flagged, and an answer that cites none of its sources gets a warning. This checks IDs, not whether the passage supports the claim.
 
-`v5` is `v2` plus one rule: excerpts tagged `secondhand="true"` (only v5 shows the tag) are cited "as reviewed in [id]", never as the paper's own finding.
+## Evaluation
 
-## API keys
+`python -m evals.run_smoke` runs 9 questions: 7 to answer and 2 that must be refused.
 
-Keys live only in `.env` (gitignored) and are sent in `Authorization` headers, never in URLs. Errors and logs name the service and status code, never the request; `src/redact.py` strips keys from any error text that could hold one. `tests/test_secrets.py` enforces this: it forces failures in every client with fake keys and checks messages, output and logs, and it scans the repo for key-shaped strings. Tests blank the real keys and block the network.
+- **Auto-check:** passes if the answer cites at least one expected paper, or refuses when it must. It can't tell whether the claims are right: `gpt-oss-120b` passes 9 of 9 with prompt v2 and with v3 to v5.
+- **Grading:** each claim in the 7 answers was graded by an LLM (Claude) against the passages the model saw, and each answer rated good, ok or bad. I spot-checked 5 grades and agreed.
+
+| Model | Prompt | Good | Ok | Bad |
+|---|---|---|---|---|
+| `llama3.2:3b` | v1 | 0 | 4 | 3 |
+| `llama3.2:3b` | v2 | 0 | 2 | 5 |
+| `gpt-oss-120b` | v1 | 3 | 4 | 0 |
+| `gpt-oss-120b` | v2 | 3 | 4 | 0 |
+
+Retrieval was identical across all four, one graded run each. With v1, `gpt-oss-120b` first passed 4 of 9 on the auto-check because it wrote `【id】` instead of `[id]`; the validator now normalises that. I use `gpt-oss-120b` with v2 when hosted (no author names in either v2 run) and the 3B model with v1 locally. Prompts v3 to v5 stay opt-in: v3 and v4 read more easily but combined numbers from passages (v4 scored 3 good, 3 ok, 1 bad), and v5 marks second-hand evidence but still presents one narrative review as a finding.
+
+## Project structure
+
+```
+app.py                   Streamlit UI
+src/config.py            settings and their defaults
+src/curate.py            OpenAlex search, relevance gate, study design, scoring, PDF download
+src/manifest.py          list of judged papers, shared by curate and ingest
+src/ingest.py            PDF text, section labels, chunks, embeddings, Chroma
+src/rerank.py            cross-encoder
+src/rag.py               retrieve, refuse, generate, validate citations
+src/prompts.py           prompts v1 to v5
+src/llm.py               OpenAI-compatible client
+src/redact.py            strips API keys from error text
+src/api.py               FastAPI: /ask, /health
+evals/run_smoke.py       smoke eval
+evals/smoke.json         questions and expected papers
+evals/*.txt              saved answers from earlier runs
+evals/runs/              outputs with paper passages (gitignored)
+tests/conftest.py        blanks .env settings, blocks the network
+tests/test_pipeline.py   curation, ingest, retrieval, citations
+tests/test_sections.py   section labels, second-hand flag
+tests/test_design.py     study design
+tests/test_llm.py        LLM client, prompts, eval output
+tests/test_secrets.py    no key in errors, output, logs or tracked files
+docs/                    configuration and API reference
+```
+
+Run `pytest` (236 tests, no network). API keys live only in `.env` and are sent in headers; the tests scan the repo for anything key-shaped.
+
+## Limitations
+
+- A narrative review's summary of other studies can still be presented as its own finding.
+- The library is small: 23 papers, open access only. Not medical advice.
+- The hosted model runs on a free tier with rate limits, and repeated runs differ even at temperature 0 with a seed.
+- Citation checks verify IDs, not claims. Claim verification is planned.
+- Models sometimes combine numbers from a passage into one it doesn't state.
+- No conversation memory: each question stands alone.
+- The UI is a prototype.
 
 ## Roadmap
 
-- [x] MVP: RAG over curated papers with citations
-- [x] Curation pipeline (OpenAlex, relevance gate, quality score)
-- [x] Metadata carried through ingest
-- [x] Cross-encoder reranking + honest refusal
-- [x] Citation validation
-- [ ] Evaluation harness (retrieval precision, answer faithfulness)
-- [ ] Conversational memory (multi-turn)
-- [ ] Dockerize
-- [ ] Deploy: Railway (API) + Streamlit Cloud (UI)
+- Retrieval eval with more questions (recall, MRR) and exact vector search.
+- Second-hand label per source in the API.
+- Number check, as part of claim verification.
+- Rank penalty for second-hand passages, measured by the retrieval eval.
+- Conversation memory, then deployment.
 
-## Notes
+## Acknowledgements
 
-- Answers are only as good as the papers you feed it. Curate carefully.
-- Only open-access papers are fetched, and only papers in the manifest are ingested. PDFs added by hand are listed as "not in manifest" and skipped.
-- Papers are used locally for retrieval and citation only, not redistributed.
-- The LLM can still misread excerpts. Citations let users verify.
-- Not medical or professional advice.
+[OpenAlex](https://openalex.org), [PubMed / NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/), [Ollama](https://ollama.com), [Groq](https://groq.com), [ChromaDB](https://www.trychroma.com), the authors of [cross-encoder/ms-marco-MiniLM-L-6-v2](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2), and the authors of the papers in the library. The papers themselves are not in this repo.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
