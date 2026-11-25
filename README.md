@@ -92,6 +92,8 @@ cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM
    ```
    Candidates are pulled 200 per page across `CURATE_QUERIES`, deduplicated by DOI and limited to open access. Articles and reviews (where OpenAlex files most meta-analyses) are fetched. A paper passes the relevance gate if it mentions a resistance-specific term (resistance, strength, hypertrophy, 1RM, …; `training` alone isn't enough) and no clinical or bench-science term. Matching is whole-word, so `strength` doesn't match `strengthen` and `randomized` doesn't match `non-randomized`. Score = 0.40 × citations (log scale, full marks at `CITATION_CAP`/year) + 0.35 × study design + 0.25 × trusted journal. Papers below `CURATE_MIN_SCORE` are cut.
 
+   Study design comes from the first of these that says something: (1) a title that declares itself a narrative review, position stand or consensus statement; (2) PubMed publication types (NCBI E-utilities; PMID from OpenAlex, or looked up by DOI for manifest papers); (3) keywords in the title, then the abstract. Title first, because PubMed tags some narrative reviews `Meta-Analysis` and some position stands only `Review`. Tiers: meta-analysis 1.0, systematic review 0.9, RCT 0.8, position stand 0.6, cohort 0.5, narrative review 0.4, observational 0.4, other 0.3. The manifest keeps `pmid`, `pubtypes` and `design_source` (`pubmed` or `keyword`) and reuses PubMed-based types on later runs. PubMed requests carry `tool` and your `OPENALEX_MAILTO` email; if PubMed fails, the run stops and the previous manifest is kept.
+
    Every run judges **all** papers together: the new candidates plus every paper already in the manifest, re-fetched from OpenAlex by DOI so citation counts are current. A paper is included if it passes the gate, scores at least `CURATE_MIN_SCORE` and has a valid PDF; there's no cap on the library size. PDFs already on disk are reused. Walking best score first, up to `CURATE_TARGET_PDFS` new PDFs are downloaded per run, trying every open-access link.
 
    `--rejudge` skips the search and downloads: it re-fetches only the manifest papers by DOI, re-scores them with the current rules and rewrites the included flags. Use it after changing the gate, weights or `CURATE_MIN_SCORE`.
@@ -110,7 +112,7 @@ cp .env.example .env           # then edit OPENALEX_* and, for a hosted LLM, LLM
 
    The body is split at headings on their own line (`Introduction`, `2. Methods`, `Results`, `Discussion`, `Conclusions`, …) and chunks never cross a section. Headings are compared without spaces or case, so small-caps ones (`REsulT s`, or one split over several lines) count. An abstract ends at a numbered heading, an `Introduction` heading or the keywords line; before that, `Methods`/`Results`/`Conclusions` lines are a structured abstract. With no `Introduction` heading, the text after the keywords is the introduction. If a section's heading is numbered, unnumbered lines with the same name (table columns) are ignored. Numbered topic sections of narrative reviews (`2 Training Frequency`) end the introduction and count as `discussion`. `table` covers tables, from the caption to the end of the page or until running text resumes, and everything kept after the references. Text before the first heading, or a paper with no headings, is `unknown`. Each paper's section counts are printed.
 
-   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks. It is stored and reported only; ranking and prompts don't use it yet.
+   Each chunk also stores `secondhand`: true when sentences that cite other studies, and don't mention the paper's own work (`we`, `our`, `the present study`), make up at least half of it. Never set for `table` and `methods` chunks, except that every chunk of a `narrative_review` paper has it. It is stored only; ranking and prompts don't use it yet.
 
    **Re-ingest after pulling these changes.** New section labels change the embeddings and chunks now carry `secondhand`, so the collection is now `sciencefit_v4` and is empty until you run `python -m src.ingest --reset`. Restart the API afterwards. The old `sciencefit_v3` collection is left in place.
 
@@ -231,6 +233,7 @@ ScienceFit/
 │   └── runs/             # outputs with paper excerpts (gitignored)
 └── tests/
     ├── conftest.py       # blanks LLM_* so tests ignore .env
+    ├── test_design.py    # study design: titles, PubMed types, keywords
     ├── test_llm.py
     ├── test_sections.py  # section labels, second-hand flag
     └── test_pipeline.py

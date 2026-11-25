@@ -345,12 +345,14 @@ class VectorStore:
         if not chunks:
             return
         sections = sections or ["unknown"] * len(chunks)
+        narrative = meta.get("design") == "narrative_review"  # no findings of its own: every chunk is second-hand
         self.collection.add(
             ids=[f"{paper_id}::{i}" for i in range(len(chunks))],
             embeddings=embed([config.DOC_PREFIX + contextual_header(meta.get("title"), sec) + c
                               for c, sec in zip(chunks, sections)]),
             documents=chunks,  # raw text: the header is only for embedding
-            metadatas=[{**meta, "paper": paper_id, "chunk_index": i, "section": sec, "secondhand": is_secondhand(c, sec)}
+            metadatas=[{**meta, "paper": paper_id, "chunk_index": i, "section": sec,
+                        "secondhand": narrative or is_secondhand(c, sec)}
                        for i, (c, sec) in enumerate(zip(chunks, sections))],
         )
 
