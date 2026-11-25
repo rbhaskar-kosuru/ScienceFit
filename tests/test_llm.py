@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler
 import pytest
 from src import config, llm
 from src.llm import LLMClient, LLMError, strip_reasoning
-from src.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_V2, SYSTEM_PROMPT_V3, SYSTEM_PROMPT_V4, get_prompt
+from src.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_V2, SYSTEM_PROMPT_V3, SYSTEM_PROMPT_V4, SYSTEM_PROMPT_V5, get_prompt
 from src.rag import RAG, normalise_brackets, validate_citations
 from tests.test_pipeline import FakeReranker, FakeStore, hit
 
@@ -87,6 +87,42 @@ V3_SYSTEM_PROMPT = (
     "9. Include a number only if you say what it measures in everyday words. Skip technical units and statistics "
     "(µm², CI, p-values, effect sizes) unless the question asks for them.\n"
     "10. Keep it short: 3 to 5 sentences unless the question needs more.\n"
+    "\n"
+    "Output only the answer, concisely and in your own words. No preamble, no reasoning, no excerpt tags. "
+    "Do not moralize or add medical disclaimers: you are summarizing published research."
+)
+
+
+# v4 as evaluated. Never edit.
+V4_SYSTEM_PROMPT = (
+    "You are ScienceFit, a research assistant for resistance training. Answer the question using only the paper "
+    "excerpts in the user message. Each excerpt is wrapped in <excerpt id=\"...\" section=\"...\"> tags.\n"
+    "\n"
+    "Rules:\n"
+    "1. Cite only ids from the allowed list, always in square brackets: [id]. This includes \"as reviewed in [id]\".\n"
+    "2. Do not write author names or publication years in the text, and do not copy the excerpts' own reference "
+    "numbers.\n"
+    "3. Every claim must be supported by an excerpt. Put that excerpt's [id] right after the claim. Leave out "
+    "anything that does not help answer the question.\n"
+    "4. Excerpts with section=\"introduction\" describe other studies. So does any excerpt, whatever its section, "
+    "where it reports what another study found. Never present these as that paper's own finding; write \"as reviewed "
+    "in [id]\" instead.\n"
+    "5. Use only numbers that appear in an excerpt. Rounding is fine. Never multiply, add or combine numbers (for "
+    "example sets times sessions), and never merge separate ranges.\n"
+    "6. If the excerpts do not answer the question, say so briefly, then give the closest relevant findings that "
+    "are in the excerpts.\n"
+    "7. Start with a one-sentence direct answer to the question: yes, no, it depends, or the excerpts don't say. "
+    "It must be fully supported by the evidence that follows and end with a citation. If the excerpts disagree or "
+    "are mixed, open with \"It depends\" or \"The evidence is mixed\", not \"Yes\" or \"No\".\n"
+    "8. If the question asks whether X increases or improves Y, answer whether X beats the usual alternative (such "
+    "as not doing X), not whether X works at all.\n"
+    "9. Then give the key evidence in plain language, for a reader who is not a scientist. Include a number only if "
+    "you say what it measures in everyday words.\n"
+    "10. Do not use microscopic or lab units or statistics (µm², mm², mmol, CI, p-values, effect sizes). Say the "
+    "result in words or leave it out.\n"
+    "11. If an excerpt gives a practical limit or threshold, such as an amount beyond which there is no further "
+    "gain, include it when it is relevant to the question.\n"
+    "12. Keep it short: 3 to 5 sentences unless the question needs more.\n"
     "\n"
     "Output only the answer, concisely and in your own words. No preamble, no reasoning, no excerpt tags. "
     "Do not moralize or add medical disclaimers: you are summarizing published research."
@@ -288,6 +324,82 @@ def test_prompt_v4_exists_and_has_no_example_ids():
     assert not re.search(r"\b[a-z][a-z0-9]*_\d{4}", SYSTEM_PROMPT_V4, re.I)
 
 
+def test_prompt_v4_is_identical_to_the_evaluated_prompt():
+    assert SYSTEM_PROMPT_V4 == V4_SYSTEM_PROMPT == get_prompt("v4").system
+
+
+def test_prompt_v5_is_v2_plus_one_rule():
+    import re
+    added = [line for line in SYSTEM_PROMPT_V5.split("\n") if line not in SYSTEM_PROMPT_V2.split("\n")]
+    assert [line for line in SYSTEM_PROMPT_V5.split("\n") if line not in added] == SYSTEM_PROMPT_V2.split("\n")
+    assert len(added) == 1 and added[0].startswith('7. Excerpts marked secondhand="true"')
+    assert "as reviewed in [id]" in added[0] and get_prompt("v5").system == SYSTEM_PROMPT_V5
+    assert not re.search(r"\b[a-z][a-z0-9]*_\d{4}", SYSTEM_PROMPT_V5, re.I)
+
+
+FLAGGED = [hit("a_2020", section="discussion", secondhand=True), hit("b_2021", section="results", secondhand=False),
+           hit("c_2022", secondhand=True), hit("d_2023", section="methods")]
+
+
+@pytest.mark.parametrize("version", ["v1", "v2", "v3", "v4"])
+def test_older_prompts_render_excerpts_exactly_as_before(version):
+    user = get_prompt(version).build("q?", FLAGGED)
+    assert user.startswith('<excerpt id="a_2020" section="discussion">\nexcerpt from a_2020\n</excerpt>\n\n'
+                           '<excerpt id="b_2021" section="results">\nexcerpt from b_2021\n</excerpt>\n\n'
+                           '<excerpt id="c_2022">\nexcerpt from c_2022\n</excerpt>\n\n'
+                           '<excerpt id="d_2023" section="methods">\nexcerpt from d_2023\n</excerpt>\n\nQuestion: q?\n\n')
+    assert "secondhand" not in user + get_prompt(version).system
+    assert user == get_prompt(version).build("q?", [{k: v for k, v in h.items() if k != "secondhand"} for h in FLAGGED])
+
+
+def test_v5_tags_only_flagged_chunks_and_changes_nothing_else():
+    user = get_prompt("v5").build("q?", FLAGGED)
+    assert re_tags(user) == ['<excerpt id="a_2020" section="discussion" secondhand="true">', '<excerpt id="b_2021" section="results">',
+                             '<excerpt id="c_2022" secondhand="true">', '<excerpt id="d_2023" section="methods">']
+    assert user.replace(' secondhand="true"', "") == get_prompt("v2").build("q?", FLAGGED)
+
+
+def re_tags(text):
+    import re
+    return re.findall(r"<excerpt [^>]*>", text)
+
+
+def test_smoke_report_marks_secondhand_excerpts_for_v5():
+    from evals.run_smoke import check, excerpts, report
+    shown = excerpts(get_prompt("v5").build("q?", FLAGGED))
+    assert [(e["id"], e["section"], e["secondhand"]) for e in shown] == [
+        ("a_2020", "discussion", True), ("b_2021", "results", False), ("c_2022", "unknown", True), ("d_2023", "methods", False)]
+    res = {"answer": "x", "refused": False, "sources": [], "unverified_citations": []}
+    out = report({"id": "Q1", "question": "q", "expect_any": ["a_2020"]}, res, check({"expect_any": ["a_2020"]}, res), shown)
+    assert "[a_2020] section: discussion secondhand\n" in out and "[b_2021] section: results\n" in out
+
+
+def test_smoke_eval_counts_answers_and_flags_errors_and_empty_ones(monkeypatch, capsys):
+    from evals import run_smoke
+    cases = len(json.loads(run_smoke.CASES.read_text()))
+    broken = {}
+
+    class FakeRAG:
+        def __init__(self, generate, prompt_version):
+            self.n = 0
+
+        def ask(self, question):
+            self.n += 1
+            if broken.get(self.n) == "error":
+                raise LLMError("HTTP 500 api_key=abc123 Bearer abc123")
+            return {"answer": "  " if broken.get(self.n) == "empty" else "x", "refused": True, "sources": [], "unverified_citations": []}
+
+    monkeypatch.setattr("src.rag.RAG", FakeRAG)
+    run_smoke.main([])
+    assert f"Answered {cases} of {cases}\n" in capsys.readouterr().out
+    broken.update({2: "error", 4: "empty"})
+    with pytest.raises(SystemExit) as e:
+        run_smoke.main([])
+    out = capsys.readouterr().out
+    assert e.value.code == 1 and f"Answered {cases - 2} of {cases}  NOT ANSWERED: Q2, Q4\n" in out
+    assert "Q2  ERROR" in out and "empty answer" in out and "abc123" not in out and "Q9  " in out
+
+
 def test_smoke_report_shows_the_excerpts_the_model_saw():
     from evals.run_smoke import Recorder, check, excerpts, report
 
@@ -300,8 +412,8 @@ def test_smoke_report_shows_the_excerpts_the_model_saw():
         res = RAG(FakeStore([hit("a_2020", section="results"), hit("b_2021")]), FakeReranker([3.0, 2.0]), rec.generate,
                   prompt_version=version).ask("How many sets?")
         shown = excerpts(rec.prompt)
-        assert shown == [{"id": "a_2020", "section": "results", "text": "excerpt from a_2020"},
-                         {"id": "b_2021", "section": "unknown", "text": "excerpt from b_2021"}]
+        assert shown == [{"id": "a_2020", "section": "results", "secondhand": False, "text": "excerpt from a_2020"},
+                         {"id": "b_2021", "section": "unknown", "secondhand": False, "text": "excerpt from b_2021"}]
         case = {"id": "Q1", "question": "q", "expect_any": ["a_2020"]}
         out = report(case, res, check(case, res), shown)
         assert "    excerpts:   2\n      [a_2020] section: results\n        excerpt from a_2020" in out

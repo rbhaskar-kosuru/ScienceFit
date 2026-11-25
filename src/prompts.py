@@ -36,11 +36,13 @@ def build_prompt(question: str, hits: list[dict]) -> str:
             "don't reproduce the excerpt markup.")
 
 
-def format_excerpt(h: dict) -> str:
+def format_excerpt(h: dict, mark_secondhand: bool = False) -> str:
     """<excerpt id="carvalho_2022" section="introduction"> text </excerpt>. No title/journal/design, so there's
-    no header for the model to copy; unknown sections get no section attribute."""
+    no header for the model to copy; unknown sections get no section attribute. With `mark_secondhand` (v5),
+    flagged chunks also get secondhand="true"."""
     section = h.get("section")
     attr = f' section="{section}"' if section and section != "unknown" else ""
+    attr += ' secondhand="true"' if mark_secondhand and h.get("secondhand") else ""
     return f'<excerpt id="{h["paper"]}"{attr}>\n{h["text"]}\n</excerpt>'
 
 
@@ -66,8 +68,8 @@ SYSTEM_PROMPT_V2 = (
 )
 
 
-def build_prompt_v2(question: str, hits: list[dict]) -> str:
-    excerpts = "\n\n".join(format_excerpt(h) for h in hits)
+def build_prompt_v2(question: str, hits: list[dict], mark_secondhand: bool = False) -> str:
+    excerpts = "\n\n".join(format_excerpt(h, mark_secondhand) for h in hits)
     ids = ", ".join(dict.fromkeys(h["paper"] for h in hits))
     return (f"{excerpts}\n\nQuestion: {question}\n\n"
             f"Allowed ids: {ids}\n"
@@ -138,6 +140,36 @@ SYSTEM_PROMPT_V4 = (
 )
 
 
+# v2 plus rule 7 for excerpts tagged secondhand="true". Same user message as v2, with the tag.
+SYSTEM_PROMPT_V5 = (
+    "You are ScienceFit, a research assistant for resistance training. Answer the question using only the paper "
+    "excerpts in the user message. Each excerpt is wrapped in <excerpt id=\"...\" section=\"...\"> tags.\n"
+    "\n"
+    "Rules:\n"
+    "1. Cite only ids from the allowed list, always in square brackets: [id]. This includes \"as reviewed in [id]\".\n"
+    "2. Do not write author names or publication years in the text, and do not copy the excerpts' own reference "
+    "numbers.\n"
+    "3. Every claim must be supported by an excerpt. Put that excerpt's [id] right after the claim. Leave out "
+    "anything that does not help answer the question.\n"
+    "4. Excerpts with section=\"introduction\" describe other studies. Never present them as that paper's own "
+    "finding; write \"as reviewed in [id]\" instead.\n"
+    "5. Report numbers exactly as written in the excerpt, including set and rep ranges. Do not combine or "
+    "recalculate them.\n"
+    "6. If the excerpts do not answer the question, say so briefly, then give the closest relevant findings that "
+    "are in the excerpts.\n"
+    "7. Excerpts marked secondhand=\"true\" report other studies' results. Cite them as \"as reviewed in [id]\" (or "
+    "\"a review in [id] reports\"), never as that paper's own finding, and do not present them as stronger evidence "
+    "than first-hand results.\n"
+    "\n"
+    "Output only the answer, concisely and in your own words. No preamble, no reasoning, no excerpt tags. "
+    "Do not moralize or add medical disclaimers: you are summarizing published research."
+)
+
+
+def build_prompt_v5(question: str, hits: list[dict]) -> str:
+    return build_prompt_v2(question, hits, mark_secondhand=True)
+
+
 class Prompt(NamedTuple):
     system: str
     build: Callable[[str, list[dict]], str]
@@ -148,6 +180,7 @@ PROMPTS = {
     "v2": Prompt(SYSTEM_PROMPT_V2, build_prompt_v2),
     "v3": Prompt(SYSTEM_PROMPT_V3, build_prompt_v2),
     "v4": Prompt(SYSTEM_PROMPT_V4, build_prompt_v2),
+    "v5": Prompt(SYSTEM_PROMPT_V5, build_prompt_v5),
 }
 
 
