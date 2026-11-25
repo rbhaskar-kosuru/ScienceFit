@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 import requests
 
 from . import config
+from .redact import redact
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}  # never sent the API key
 THINK_BLOCK = re.compile(r"<think>.*?</think>", re.S | re.I)
@@ -54,7 +55,7 @@ class LLMClient:
             try:
                 r = requests.post(self.url, json=payload, headers=headers, timeout=config.LLM_TIMEOUT,
                                   allow_redirects=False)
-            except requests.RequestException as e:  # only the type: the exception object holds the request
+            except (requests.RequestException, ValueError) as e:  # only the type: the exception holds the request
                 raise LLMError(f"LLM {self.model}: request failed ({type(e).__name__})") from None
             if r.status_code == 200:
                 try:
@@ -74,7 +75,7 @@ class LLMClient:
         """Provider's error text, key redacted. Dropped for auth errors, where some providers echo part of the key."""
         if r.status_code in (401, 403):
             return " (check LLM_API_KEY)"
-        text = r.text.replace(self._api_key, "***") if self._api_key else r.text
+        text = redact(r.text, self._api_key)
         return f": {text[:300]}" if text else ""
 
 

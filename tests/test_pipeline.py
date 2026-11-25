@@ -161,7 +161,7 @@ class FakeSession:
     def __init__(self, respond):
         self.respond, self.headers, self.calls = respond, {}, []
 
-    def get(self, url, params=None, timeout=None):
+    def get(self, url, params=None, headers=None, timeout=None):
         self.calls.append((url, params))
         return self.respond(url, params)
 

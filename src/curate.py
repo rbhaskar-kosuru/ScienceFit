@@ -14,6 +14,7 @@ from dataclasses import dataclass, asdict, field
 import requests
 
 from . import config, manifest
+from .redact import redact
 
 OPENALEX = "https://api.openalex.org/works"
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -168,7 +169,7 @@ class OpenAlexClient:
         self.session = session or requests.Session()
         self.session.headers.update(HEADERS)
         self.mailto = mailto
-        self.api_key = api_key
+        self._api_key = api_key
 
     def search(self, query: str, n: int = 200, from_year: int = config.CURATE_FROM_YEAR) -> list[dict]:
         results, per_page = [], min(n, 200)
@@ -203,20 +204,27 @@ class OpenAlexClient:
         return results
 
     def _get(self, params: dict, retries: int = 4) -> dict:
+        """The key goes in a header, never the URL; errors name the service and status, never the request."""
         params = {**params, "select": FIELDS}
         if self.mailto:
             params["mailto"] = self.mailto  # OpenAlex "polite pool"
-        if self.api_key:
-            params["api_key"] = self.api_key
+        headers = {"Authorization": f"Bearer {self._api_key}"} if self._api_key else {}
         for attempt in range(retries):
-            r = self.session.get(OPENALEX, params=params, timeout=30)
+            try:
+                r = self.session.get(OPENALEX, params=params, headers=headers, timeout=30)
+            except (requests.RequestException, ValueError) as e:  # ValueError: a key that can't be a header
+                raise RuntimeError(f"OpenAlex request failed: {type(e).__name__}") from None
             if r.status_code == 429 or r.status_code >= 500:
                 time.sleep(float(r.headers.get("Retry-After") or 2 ** attempt))
                 continue
-            r.raise_for_status()
-            return r.json()
-        r.raise_for_status()
-        return {}
+            if r.status_code != 200:
+                break
+            try:
+                return r.json()
+            except ValueError:
+                raise RuntimeError("OpenAlex request failed: response is not JSON") from None
+        hint = " (check OPENALEX_API_KEY)" if r.status_code in (401, 403) else ""
+        raise RuntimeError(f"OpenAlex request failed: HTTP {r.status_code}{hint}")
 
 
 class PubMedClient:
@@ -256,14 +264,17 @@ class PubMedClient:
             self.last_hit = time.monotonic()
             try:
                 r = self.session.post(EUTILS + endpoint, data=data, timeout=30)
-            except requests.RequestException as e:
+            except (requests.RequestException, ValueError) as e:
                 raise RuntimeError(f"PubMed request failed ({type(e).__name__})") from None
             if r.status_code == 429 or r.status_code >= 500:
                 time.sleep(self.delay and 2 ** attempt)
                 continue
             if r.status_code != 200:
                 break
-            return r.json()
+            try:
+                return r.json()
+            except ValueError:
+                raise RuntimeError("PubMed response is not JSON") from None
         raise RuntimeError(f"PubMed HTTP {r.status_code}")
 
 
@@ -468,7 +479,7 @@ class PDFDownloader:
             self._wait(url)
             try:
                 r = self.session.get(url, timeout=30)
-            except requests.RequestException as e:
+            except (requests.RequestException, ValueError) as e:
                 reason = type(e).__name__
                 continue
             if not r.ok:
@@ -582,7 +593,7 @@ def main() -> None:
                         download=not (args.no_download or args.rejudge), search=not args.rejudge,
                         save=not args.no_download)
     except Exception as e:
-        print(f"Curation failed ({type(e).__name__}: {e}). Previous manifest kept.", file=sys.stderr)
+        print(f"Curation failed ({type(e).__name__}: {redact(e)}). Previous manifest kept.", file=sys.stderr)
         sys.exit(1)
     for p in papers:
         status = "IN " if p.included else "out"

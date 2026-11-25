@@ -223,6 +223,7 @@ ScienceFit/
 │   ├── ingest.py         # PaperLoader, line numbers, sections, Chunker, contextual headers, VectorStore
 │   ├── rerank.py         # cross-encoder reranker (raw logits)
 │   ├── llm.py            # OpenAI-compatible client: retries, reasoning cleanup
+│   ├── redact.py         # strips API keys from error text
 │   ├── prompts.py        # versioned prompts (v1 to v4)
 │   ├── rag.py            # retrieve → rerank → refuse/generate → validate
 │   └── api.py            # FastAPI endpoints
@@ -232,9 +233,10 @@ ScienceFit/
 │   ├── *.txt             # tracked outputs, answers only
 │   └── runs/             # outputs with paper excerpts (gitignored)
 └── tests/
-    ├── conftest.py       # blanks LLM_* so tests ignore .env
+    ├── conftest.py       # blanks .env settings, blocks the network
     ├── test_design.py    # study design: titles, PubMed types, keywords
     ├── test_llm.py
+    ├── test_secrets.py   # no key in errors, output, logs or tracked files
     ├── test_sections.py  # section labels, second-hand flag
     └── test_pipeline.py
 ```
@@ -294,6 +296,10 @@ Leave them blank for local Ollama with prompt v1. `LLM_EXTRA_PARAMS` takes provi
 `v3` is `v2` plus: a one-sentence direct answer first, then plain-language evidence, no unexplained numbers or technical statistics, 3–5 sentences.
 
 `v4` is `v3` revised for accuracy; it asks for a cited, supported opening sentence, comparison with the usual alternative, rounding but no calculating, no lab units, practical limits included, and second-hand findings marked "as reviewed in".
+
+## API keys
+
+Keys live only in `.env` (gitignored) and are sent in `Authorization` headers, never in URLs. Errors and logs name the service and status code, never the request; `src/redact.py` strips keys from any error text that could hold one. `tests/test_secrets.py` enforces this: it forces failures in every client with fake keys and checks messages, output and logs, and it scans the repo for key-shaped strings. Tests blank the real keys and block the network.
 
 ## Roadmap
 

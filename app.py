@@ -13,8 +13,10 @@ def ask(question: str) -> dict:
         r = requests.post(API_URL, json={"question": question, "top_k": TOP_K}, timeout=180)
         r.raise_for_status()
         return r.json()
-    except requests.RequestException as e:
-        return {"answer": f"API error: {e}", "refused": True, "sources": [], "unverified_citations": [],
+    except requests.RequestException as e:  # not str(e): it holds the URL
+        status = getattr(e.response, "status_code", None)
+        reason = f"HTTP {status}" if status else type(e).__name__
+        return {"answer": f"API error: {reason}", "refused": True, "sources": [], "unverified_citations": [],
                 "no_citations": False}
 
 
