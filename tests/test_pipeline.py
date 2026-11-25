@@ -202,7 +202,7 @@ def test_gate_and_design_match_whole_words_and_skip_negations():
     assert not gate.apply([text("endurance training and cognitive training")])  # 'training' alone isn't enough
     assert not gate.apply([text("strength in knee osteoarthritis")])
     assert not gate.apply([text("resistance training in diabetes")]) and gate.apply([text("non-clinical resistance training")])
-    design = curate.PaperParser._design
+    design = lambda text: (curate.keyword_design("", text),)
     assert design("a randomized trial")[0] == "rct"
     assert design("a non-randomized trial")[0] == "other"
     assert design("a non randomised cohort")[0] == "cohort"
@@ -275,6 +275,17 @@ def test_download_falls_back_to_next_link(tmp_path):
     assert p.pdf_file == "a_2017.pdf" and len(session.calls) == 2
 
 
+class FakePubMed:
+    def find_pmid(self, doi):
+        return None
+
+    def summaries(self, pmids):
+        return {}
+
+
+NO_PUBMED = FakePubMed()
+
+
 class FakeClient:
     def __init__(self, known=(), fresh=(), fail=False):
         self.known, self.fresh, self.fail, self.asked = list(known), list(fresh), fail, []
@@ -299,12 +310,12 @@ def test_curate_rejudges_manifest_papers_with_fresh_data_and_never_deletes_pdfs(
     # Re-fetched: same paper, but now off-topic, so it drops out. "lost" isn't found in OpenAlex.
     old_now = raw_work("old", title="Endurance running economy", publication_year=2010, cited_by_count=0)
     client = FakeClient(known=[old_now])
-    curate.curate(["q"], target=5, download=False, save=False, client=client, papers_dir=papers_dir,
+    curate.curate(["q"], target=5, download=False, save=False, client=client, pubmed=NO_PUBMED, papers_dir=papers_dir,
                   manifest_path=path)
     assert client.asked == ["old", "lost"]
     assert manifest.load(path)[0]["included"] is True  # dry run: manifest untouched
 
-    curate.curate(["q"], target=5, client=client, papers_dir=papers_dir, manifest_path=path)
+    curate.curate(["q"], target=5, client=client, pubmed=NO_PUBMED, papers_dir=papers_dir, manifest_path=path)
     records = {r["paper_id"]: r for r in manifest.load(path)}
     assert (records["old_2010"]["included"], records["old_2010"]["reason"]) == (False, "failed relevance gate")
     assert (records["lost_2011"]["included"], records["lost_2011"]["reason"]) == (False, "not found in OpenAlex")
@@ -331,7 +342,7 @@ def test_rejudge_refetches_manifest_papers_without_searching_or_downloading(tmp_
     downloads = []
     monkeypatch.setattr(curate.PDFDownloader, "fetch", lambda self, p: downloads.append(p) or None)
 
-    curate.curate(["q"], download=False, search=False, client=client, papers_dir=papers_dir, manifest_path=path)
+    curate.curate(["q"], download=False, search=False, client=client, pubmed=NO_PUBMED, papers_dir=papers_dir, manifest_path=path)
     records = {r["paper_id"]: (r["included"], r["reason"]) for r in manifest.load(path)}
     assert records == {"strong_2019": (True, None), "faded_2018": (False, "failed relevance gate"),
                        "nopdf_2017": (False, "no PDF on disk (not downloaded)")}
@@ -353,7 +364,7 @@ def test_curate_failure_keeps_previous_manifest(tmp_path, monkeypatch, capsys):
     manifest.save([{"paper_id": "a_2020", "doi": "a", "included": True}], path)
     before = path.read_text()
     with pytest.raises(RuntimeError):
-        curate.curate(["q"], client=FakeClient(fail=True), papers_dir=tmp_path, manifest_path=path)
+        curate.curate(["q"], client=FakeClient(fail=True), pubmed=NO_PUBMED, papers_dir=tmp_path, manifest_path=path)
     assert path.read_text() == before
 
     def boom(*args, **kwargs):

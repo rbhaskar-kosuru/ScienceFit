@@ -1,4 +1,4 @@
-"""Curation: new OpenAlex candidates + every paper already in the manifest → relevance gate → score → cutoff
+"""Curation: new OpenAlex candidates + every paper already in the manifest → study design → relevance gate → score → cutoff
 → download new PDFs in rank order → manifest listing every judged paper as included or excluded (with the reason)."""
 import re
 import sys
@@ -16,19 +16,41 @@ import requests
 from . import config, manifest
 
 OPENALEX = "https://api.openalex.org/works"
+EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 HEADERS = {"User-Agent": "ScienceFit/0.2 (research RAG)"}
-FIELDS = ("id,doi,title,publication_year,cited_by_count,authorships,primary_location,"
+FIELDS = ("id,doi,ids,title,publication_year,cited_by_count,authorships,primary_location,"
           "open_access,best_oa_location,locations,is_retracted,abstract_inverted_index")
 
-# Design tiers scanned from title/abstract, best evidence first.
-DESIGN_TIERS = [
-    (("meta-analysis", "meta analysis"), "meta_analysis", 1.0),
-    (("systematic review",), "systematic_review", 0.9),
-    (("randomized", "randomised", "rct"), "rct", 0.8),
-    (("cohort", "longitudinal", "prospective"), "cohort", 0.5),
-    (("cross-sectional", "observational"), "observational", 0.4),
+# Evidence tier of each study design (35% of the score).
+DESIGN_WEIGHTS = {
+    "meta_analysis": 1.0, "systematic_review": 0.9, "rct": 0.8, "position_stand": 0.6, "cohort": 0.5,
+    "narrative_review": 0.4, "observational": 0.4, "other": 0.3,
+}
+# PubMed publication types → design, first match wins. "Review" therefore means neither systematic nor meta-analysis.
+PUBMED_DESIGNS = [
+    ("meta_analysis", {"Meta-Analysis", "Network Meta-Analysis"}),
+    ("systematic_review", {"Systematic Review"}),
+    ("rct", {"Randomized Controlled Trial"}),
+    ("position_stand", {"Practice Guideline", "Guideline", "Consensus Development Conference"}),
+    ("narrative_review", {"Review"}),
 ]
-DEFAULT_DESIGN = ("other", 0.3)
+# What a title declares the paper to be. Beats PubMed, which tags some narrative reviews "Meta-Analysis" and some
+# position stands just "Review".
+DECLARED_DESIGNS = [
+    (("narrative review",), "narrative_review"),
+    (("position stand", "position statement", "consensus statement"), "position_stand"),
+]
+# Fallback without useful PubMed types: the declared title, or "consensus" in it...
+TITLE_DESIGNS = [*DECLARED_DESIGNS, (("consensus",), "position_stand")]
+# ...then keywords scanned from the title, then title + abstract, best evidence first.
+DESIGN_TIERS = [
+    (("meta-analysis", "meta analysis"), "meta_analysis"),
+    (("systematic review",), "systematic_review"),
+    (("randomized", "randomised", "rct"), "rct"),
+    (("cohort", "longitudinal", "prospective"), "cohort"),
+    (("cross-sectional", "observational"), "observational"),
+]
+DEFAULT_DESIGN = "other"
 
 # Q1/Q2 sports-science venues (proxy for Scimago quartile without bundling the CSV). Stored normalized.
 TRUSTED_JOURNALS = {
@@ -66,7 +88,37 @@ def term_pattern(terms) -> re.Pattern:
     return re.compile(rf"(?<!non-)(?<!non )\b(?:{alternatives})\b")
 
 
-DESIGN_PATTERNS = [(term_pattern(keywords), name, weight) for keywords, name, weight in DESIGN_TIERS]
+DESIGN_PATTERNS = [(term_pattern(keywords), name) for keywords, name in DESIGN_TIERS]
+DECLARED_PATTERNS = [(term_pattern(keywords), name) for keywords, name in DECLARED_DESIGNS]
+TITLE_PATTERNS = [(term_pattern(keywords), name) for keywords, name in TITLE_DESIGNS]
+REVIEW_TITLE = re.compile(r"\breview\b")
+STRUCTURED_REVIEW = re.compile(r"\b(?:scoping|umbrella) review\b")
+
+
+def first_match(patterns: list, text: str) -> str | None:
+    return next((name for pattern, name in patterns if pattern.search(text)), None)
+
+
+def declared_design(title: str) -> str | None:
+    """"…: A Narrative Review" → narrative_review. None if the title also says systematic review, meta-analysis, RCT…"""
+    title = title.lower()
+    return None if first_match(DESIGN_PATTERNS, title) else first_match(DECLARED_PATTERNS, title)
+
+
+def keyword_design(title: str, text: str) -> str:
+    """Design from words. The title decides first; the abstract of something titled a review mentions the
+    meta-analyses it discusses, so it can't turn the review into one."""
+    title, text = title.lower(), text.lower()
+    if design := first_match(TITLE_PATTERNS, title) or first_match(DESIGN_PATTERNS, title):
+        return design
+    if REVIEW_TITLE.search(title):
+        return "systematic_review" if STRUCTURED_REVIEW.search(title) else "narrative_review"
+    return first_match(DESIGN_PATTERNS, text) or DEFAULT_DESIGN
+
+
+def pubmed_design(pubtypes: list[str]) -> str | None:
+    """Design from PubMed publication types, or None if none of them says ("Journal Article" alone)."""
+    return next((design for design, types in PUBMED_DESIGNS if types & set(pubtypes)), None)
 
 
 def normalize_journal(name: str) -> str:
@@ -95,6 +147,9 @@ class Paper:
     pdf_file: str | None = None
     included: bool = False
     reason: str | None = None  # why it's excluded; None when included
+    pmid: str | None = None
+    pubtypes: list[str] = field(default_factory=list)  # PubMed publication types
+    design_source: str = "keyword"  # or "pubmed"
     text: str = field(default="", repr=False)
 
     def key(self) -> str:
@@ -164,6 +219,87 @@ class OpenAlexClient:
         return {}
 
 
+class PubMedClient:
+    """PubMed publication types by PMID (NCBI E-utilities, at most 3 requests a second). Requests are POSTs, so the
+    contact email is never in a URL or an error message."""
+
+    def __init__(self, email: str = config.OPENALEX_MAILTO, session: requests.Session | None = None,
+                 delay: float = 0.4, batch: int = 200):
+        self.session = session or requests.Session()
+        self.session.headers.update(HEADERS)
+        self.email, self.delay, self.batch = email, delay, batch
+        self.last_hit = -math.inf
+
+    def find_pmid(self, doi: str) -> str | None:
+        doi = bare_doi(doi)
+        ids = self._post("esearch.fcgi", {"term": f'"{doi}"[doi]'}).get("esearchresult", {}).get("idlist", [])
+        return ids[0] if len(ids) == 1 else None
+
+    def summaries(self, pmids: list[str]) -> dict[str, dict]:
+        """{pmid: {"pubtypes": [...], "doi": str | None}} for the PMIDs PubMed knows."""
+        out = {}
+        for i in range(0, len(pmids), self.batch):
+            result = self._post("esummary.fcgi", {"id": ",".join(pmids[i:i + self.batch])}).get("result", {})
+            for pmid in result.get("uids", []):
+                entry = result.get(pmid) or {}
+                if "error" not in entry:
+                    doi = next((a["value"] for a in entry.get("articleids", []) if a.get("idtype") == "doi"), None)
+                    out[pmid] = {"pubtypes": entry.get("pubtype", []), "doi": doi}
+        return out
+
+    def _post(self, endpoint: str, data: dict, retries: int = 4) -> dict:
+        data = {**data, "db": "pubmed", "retmode": "json", "tool": "ScienceFit"}
+        if self.email:
+            data["email"] = self.email
+        for attempt in range(retries):
+            time.sleep(max(0.0, self.delay - (time.monotonic() - self.last_hit)))
+            self.last_hit = time.monotonic()
+            try:
+                r = self.session.post(EUTILS + endpoint, data=data, timeout=30)
+            except requests.RequestException as e:
+                raise RuntimeError(f"PubMed request failed ({type(e).__name__})") from None
+            if r.status_code == 429 or r.status_code >= 500:
+                time.sleep(self.delay and 2 ** attempt)
+                continue
+            if r.status_code != 200:
+                break
+            return r.json()
+        raise RuntimeError(f"PubMed HTTP {r.status_code}")
+
+
+def bare_doi(doi: str | None) -> str:
+    return re.sub(r"^https?://(?:dx\.)?doi\.org/", "", (doi or "").strip(), flags=re.I).lower()
+
+
+def set_designs(papers: list[Paper], pubmed: PubMedClient, old: list[dict]) -> None:
+    """Set each paper's design from its declared title, else PubMed types, else keep the keyword design.
+    Types already in the manifest are reused. Manifest papers OpenAlex has no PMID for are looked up by DOI. A PMID
+    whose DOI is a different paper's is dropped. PubMed errors propagate: a silent fallback would change scores."""
+    cached = {record_key(r): r for r in old}
+    todo = []
+    for p in papers:
+        record = cached.get(p.key(), {})
+        if record.get("design_source") == "pubmed":
+            p.pmid, p.pubtypes = record["pmid"], record["pubtypes"]
+            continue
+        if not p.pmid and p.doi and record:
+            p.pmid = pubmed.find_pmid(p.doi)
+        if p.pmid:
+            todo.append(p)
+    found = pubmed.summaries([p.pmid for p in todo]) if todo else {}
+    for p in todo:
+        summary = found.get(p.pmid)
+        if not summary or (summary["doi"] and p.doi and bare_doi(summary["doi"]) != bare_doi(p.doi)):
+            p.pmid = None
+        else:
+            p.pubtypes = summary["pubtypes"]
+    for p in papers:
+        if declared := declared_design(p.title):
+            p.design, p.design_source = declared, "keyword"
+        elif design := pubmed_design(p.pubtypes):
+            p.design, p.design_source = design, "pubmed"
+
+
 class PaperParser:
     def __init__(self, current_year: int | None = None):
         self.current_year = current_year or date.today().year
@@ -184,7 +320,8 @@ class PaperParser:
             journal=self._journal(raw),
             citations=citations,
             citations_per_year=self._per_year(citations, year),
-            design=self._design(blob)[0],
+            design=keyword_design(title, blob),
+            pmid=self._pmid(raw),
             is_oa=oa.get("is_oa", False),
             pdf_url=urls[0] if urls else None,
             retracted=raw.get("is_retracted", False),
@@ -216,12 +353,10 @@ class PaperParser:
         return (source.get("display_name") or "").strip()
 
     @staticmethod
-    def _design(text: str) -> tuple[str, float]:
-        low = text.lower()
-        for pattern, name, weight in DESIGN_PATTERNS:
-            if pattern.search(low):
-                return name, weight
-        return DEFAULT_DESIGN
+    def _pmid(raw: dict) -> str | None:
+        """OpenAlex gives "https://pubmed.ncbi.nlm.nih.gov/12345"."""
+        m = re.search(r"(\d+)/?$", (raw.get("ids") or {}).get("pmid") or "")
+        return m.group(1) if m else None
 
     @staticmethod
     def _abstract(inverted: dict | None) -> str:
@@ -256,20 +391,13 @@ class Scorer:
     def _score(self, p: Paper) -> float:
         # Fixed log scale, not relative to the pool, so a score means the same thing on every run.
         citation = min(math.log1p(p.citations_per_year) / math.log1p(self.citation_cap), 1.0)
-        design = self._design_weight(p.design)
+        design = DESIGN_WEIGHTS.get(p.design, DESIGN_WEIGHTS[DEFAULT_DESIGN])
         journal = 1.0 if normalize_journal(p.journal) in TRUSTED_JOURNALS else 0.5
         return (
             self.weights["citations"] * citation
             + self.weights["design"] * design
             + self.weights["journal"] * journal
         )
-
-    @staticmethod
-    def _design_weight(design: str) -> float:
-        for _, name, weight in DESIGN_TIERS:
-            if name == design:
-                return weight
-        return DEFAULT_DESIGN[1]
 
 
 class IdAssigner:
@@ -402,7 +530,7 @@ def judge(ranked: list[Paper], target: int, cutoff: float | None, fetch, assign_
 
 def curate(queries: list[str], candidates: int = config.CURATE_CANDIDATES, target: int = config.CURATE_TARGET_PDFS,
            download: bool = True, search: bool = True, save: bool = True, client: OpenAlexClient | None = None,
-           papers_dir: Path = config.PAPERS_DIR, manifest_path: Path = config.MANIFEST_PATH) -> list[Paper]:
+           pubmed: PubMedClient | None = None, papers_dir: Path = config.PAPERS_DIR, manifest_path: Path = config.MANIFEST_PATH) -> list[Paper]:
     """Judge new candidates (if `search`) and every manifest paper together. The manifest is written (if `save`)
     only at the very end, so any error before that leaves the previous one in place."""
     client, parser = client or OpenAlexClient(), PaperParser()
@@ -419,6 +547,7 @@ def curate(queries: list[str], candidates: int = config.CURATE_CANDIDATES, targe
     papers = dedupe(known + fresh)
     for p in papers:
         p.paper_id = ids.existing.get(p.key(), "")
+    set_designs(papers, pubmed or PubMedClient(), old)
     ranked = Scorer().score_all(papers)
     fetch = PDFDownloader(papers_dir).fetch if download else None
     attempts = judge(ranked, target, config.CURATE_MIN_SCORE, fetch, ids.assign, papers_dir)
