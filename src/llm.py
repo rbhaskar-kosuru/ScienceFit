@@ -28,8 +28,10 @@ class LLMClient:
         self.extra_params = config.LLM_EXTRA_PARAMS if extra_params is None else extra_params
         self._api_key = config.LLM_API_KEY if api_key is None else api_key
         self._sleep = sleep
+        self.last_usage: dict = {}  # token counts of the last answer, if the provider reports them
 
     def generate(self, system: str, prompt: str) -> str:
+        self.last_usage = {}  # a failed call leaves no stale count behind
         data = self._post({
             "temperature": config.LLM_TEMPERATURE,
             "seed": config.LLM_SEED,
@@ -38,6 +40,8 @@ class LLMClient:
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             "stream": False,
         })
+        usage = data.get("usage") if isinstance(data, dict) else None
+        self.last_usage = usage if isinstance(usage, dict) else {}
         try:
             choice = data["choices"][0]
             content = choice["message"].get("content") or ""  # any separate reasoning field is ignored

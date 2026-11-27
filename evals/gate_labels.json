@@ -1,0 +1,2318 @@
+{
+ "tokens_used": 184856,
+ "items": [
+  {
+   "openalex_id": "https://openalex.org/W7220852992",
+   "title": "Effect of Short-Rest Interval versus Traditional Multiple-Set Resistance Training Combined with Endurance Training in Patients with Cardiovascular Disease: A Randomized Clinical Trial",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Participants are cardiac rehab patients (clinical population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2064497600",
+   "title": "Randomized Controlled Trial of Dietary Creatine as an Adjunct Therapy to Physical Training in Chronic Obstructive Pulmonary Disease",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients with COPD (rehabilitation) are excluded"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1516163145",
+   "title": "Importance of Resistance Training for Patients After a Cardiac Event",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "focuses on cardiac patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2973951640",
+   "title": "Examining the effects of creatine supplementation in augmenting adaptations to resistance training in patients with prostate cancer undergoing androgen deprivation therapy: a randomised, double-blind, placebo-controlled trial",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cancer patients, a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2940775896",
+   "title": "Temperature and load-ratio dependent fatigue-crack growth in the CrMnFeCoNi high-entropy alloy",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Non‑human alloy fatigue study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2896718890",
+   "title": "Resistance Training Frequency Confers Greater Muscle Quality in Aged Individuals: A Brief NHANES Report",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Observational study of RT frequency on muscle quality in older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2122284202",
+   "title": "Strength Training for Arthritis Trial (START): design and rationale",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves arthritis patients, a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2041686985",
+   "title": "The creatine kinase system and pleiotropic effects of creatine",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Mechanistic, non‑human focus; no resistance training intervention"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1994952209",
+   "title": "Creatine Fails to Augment the Benefits from Resistance Training in Patients with HIV Infection: A Randomized, Double-Blind, Placebo-Controlled Study",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves HIV-infected patients (clinical population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4396755193",
+   "title": "The effect of blood flow restriction in low-intensity load exercise on isokinetic strength of the quadriceps muscles in knee osteoarthritis",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves knee osteoarthritis patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1580587661",
+   "title": "The Molecular Bases of Training Adaptation",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "mixed",
+   "reason": "Insufficient info; not clearly human resistance training study",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W1498604664",
+   "title": "Cultural Proximity and Loan Outcomes",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "No resistance training intervention",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4414002360",
+   "title": "Effects of Resistance versus High-Intensity Interval Training on Myokines and Cancer Cell Suppression in Breast Cancer Survivors: A Randomized Trial",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "clinical cancer survivors"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7117543865",
+   "title": "Effectiveness of protein supplementation combined with resistance training to counteract disproportional fat-free mass loss following metabolic bariatric surgery: rationale and design of the ENRICHED randomised controlled trial",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients undergoing bariatric surgery are a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7224926704",
+   "title": "CREATINE IN HUMAN HEALTH: EXERCISE PERFORMANCE AND SELECTED CLINICAL APPLICATIONS",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "includes disease populations (e.g., Alzheimer’s) not healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2942969996",
+   "title": "Dynamic strength training intensity in cardiovascular rehabilitation: is it time to reconsider clinical practice? A systematic review",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cardiovascular disease patients in rehab"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3000178654",
+   "title": "Ribosome biogenesis and resistance training volume in human skeletal muscle",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training study examining molecular outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4410418348",
+   "title": "Aerobic, resistance, and specialized exercise training in heart failure with preserved ejection fraction: A state-of-the-art review",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "focus on heart failure patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7162136577",
+   "title": "CREATINA EM PRATICANTES DE MUSCULAÇÃO: MECANISMOS FISIOLÓGICOS, DESEMPENHO E SEGURANÇA",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of creatine supplementation in resistance training"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4402540052",
+   "title": "Creatine supplementation does not add to resistance training effects in prostate cancer patients under androgen deprivation therapy: A double-blind randomized trial",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cancer patients under therapy"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3129430540",
+   "title": "The effects of resistance training on muscular strength and hypertrophy in elderly cancer patients: A systematic review and meta-analysis",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients with cancer are a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4281872636",
+   "title": "Proximity or Sycophancy? The Relationship between Intelligence and Policy in the Nehruvian Era, 1947–64",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "No resistance training; historical intelligence policy study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2761392432",
+   "title": "Analysing a cycling grand tour: Can we monitor fatigue with intensity or load ratios?",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "no resistance training intervention",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4414535117",
+   "title": "Synergistic effects of creatine supplementation and resistance training in the management of knee osteoarthritis: A narrative review",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "focus on osteoarthritis patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7155575193",
+   "title": "Effectiveness of protein supplementation combined with resistance training to counteract disproportional fat-free mass loss following metabolic bariatric surgery",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients undergoing bariatric surgery are a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7148896406",
+   "title": "Effect of resistance training combined with carbohydrate and protein supplementation on the HOMA-IR, glycemic, lipid profile and hypertrophy of older adults with Type II Diabetes: secondary data analysis of a triple-blind RCT",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves participants with Type II Diabetes (clinical condition)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4380480621",
+   "title": "The effect of combined β-lactoglobulin supplementation and resistance exercise training prior to limb immobilisation on muscle protein synthesis rates in healthy young adults: study protocol for a randomised controlled trial",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training + protein in healthy young adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2734596363",
+   "title": "A pilot randomised controlled trial of a periodised resistance training and protein supplementation intervention in prostate cancer survivors on androgen deprivation therapy",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cancer patients on therapy"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4281616069",
+   "title": "Isolated Soy Protein Supplementation Combined With Resistance Training Improves Muscle Strength, Mass, and Physical Performance of Aging Female Mice",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Animal study, not human participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4404979769",
+   "title": "The power of creatine plus resistance training for healthy aging: enhancing physical vitality and cognitive function",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training + creatine in healthy older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2594259165",
+   "title": "Efectos de los suplementos de proteína y aminoácidos de cadena ramificada en entrenamiento de fuerza: revisión bibliográfica",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of protein/BCAA supplementation with resistance training in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4281652316",
+   "title": "Creatine supplementation for older adults: Focus on sarcopenia, osteoporosis, frailty and Cachexia",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "older",
+   "reason": "No resistance training component mentioned",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4416308929",
+   "title": "The Impact of Resistance Training, Whey Protein, and Creatine Supplementation on Diabetes-Induced Sarcopenia",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "focuses on diabetic patients with sarcopenia"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1985076560",
+   "title": "Skeletal muscle molecular responses to resistance training and dietary supplementation in COPD",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "COPD patients are clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4386346785",
+   "title": "Resistance training in depression",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focuses on patients with diagnosed depression"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7203793056",
+   "title": "Synergistic effects of synbiotic, protein supplementation, and resistance training on inflammation, oxidative stress, and muscle strength in older adults with type 2 diabetes mellitus: a RCT triple-blinded study",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "participants have type 2 diabetes (clinical disease)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2986069919",
+   "title": "Case Report: Load, Intensity, and Performance Characteristics in Multiple Grand Tours",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "No resistance training intervention",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7160623460",
+   "title": "Molecular Basis and Practical Applications of Training, Nutrition and Recovery for Maximum Gains in Lean Muscle Mass: A Narrative Review for Optimizing Muscular Hypertrophy",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Narrative review of resistance training and nutrition for hypertrophy"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4388133386",
+   "title": "The Combined Effect of Resistance Training and Vitamin D Supplement on Skeletal Muscle Hypertrophy: A Review",
+   "stratum": "clear_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of human RT + vitamin D studies"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2587810585",
+   "title": "High intensity impulsive loading by explosively accelerated granular matter",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "No human resistance training intervention",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W1972529513",
+   "title": "High-intensity strength training improves quality of life in cancer survivors",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "clinical cancer patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2131183029",
+   "title": "Maximal repetition performance, rating of perceived exertion, and muscle fatigue during paired set training performed with different rest intervals",
+   "stratum": "clear_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy trained adults; resistance training intervention studied"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7204990683",
+   "title": "Sex- and fiber type-specific remodeling of the muscle proteome implicates CSRP3 in resistance training-induced hypertrophy",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Human resistance training study with proteomic outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2945880639",
+   "title": "Signaling responses to high and moderate load strength exercise in trained muscle",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "adult",
+   "reason": "Molecular signaling focus, no muscle mass/strength outcomes",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4386271871",
+   "title": "Virtual reality exergame in older patients with hypertension: a preliminary study to determine load intensity and blood pressure",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients with hypertension are a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2749405841",
+   "title": "Effects of linear and daily undulating periodized resistance training programs on measures of muscle hypertrophy: a systematic review and meta-analysis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of resistance training periodization effects on hypertrophy in healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7162753129",
+   "title": "Cellular and molecular mechanisms and practical training variables for skeletal muscle hypertrophy",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Review of molecular mechanisms, no human resistance training data",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2054956564",
+   "title": "Effects of Resistance Training on Cytokines",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of RT effects on biomarkers in healthy humans"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4408047967",
+   "title": "EFFECTS OF RESISTANCE TRAINING AND PROTEIN SUPPLEMENTATION ON CARDIORESPIRATORY, METABOLIC, IMMUNOLOGICAL, RENAL, AND BODY COMPOSITION VARIABLES IN THE ELDERLY",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training +/- protein in healthy elderly participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3044153291",
+   "title": "The impact of resistance training volume on muscle size and lean body mass: to infinity and beyond?",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Narrative review of human trials on resistance training volume and hypertrophy"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4221032227",
+   "title": "Myokines and Resistance Training: A Narrative Review",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Narrative review of resistance training effects"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2126957602",
+   "title": "Effects of Combined Creatine Plus Fenugreek Extract vs. Creatine Plus Carbohydrate Supplementation on Resistance Training Adaptations.",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance‑trained adults with supplement + training intervention"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2969632311",
+   "title": "Changes in Fat Mass Following Creatine Supplementation and Resistance Training in Adults ≥50 Years of Age: A Meta-Analysis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Meta-analysis of creatine + resistance training in healthy adults ≥50"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2109277167",
+   "title": "Resistance training with soy vs whey protein supplements in hyperlipidemic males",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Participants have hyperlipidemia, a disease condition"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4283400521",
+   "title": "Effects of Postdischarge High-Protein Oral Nutritional Supplements and Resistance Training in Malnourished Surgical Patients: A Pilot Randomized Controlled Trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Patients are post-surgical, a clinical rehabilitation population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2792358318",
+   "title": "Using velocity loss for monitoring resistance training effort in a real-world setting",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained adults; resistance training intervention studied"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4387055573",
+   "title": "Dose-response relationships of resistance training in Type 2 diabetes mellitus: a meta-analysis of randomized controlled trials",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focuses on patients with type 2 diabetes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4386860096",
+   "title": "Creatine and Resistance Training: A Combined Approach to Attenuate Doxorubicin-Induced Cardiotoxicity",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Animal study, not human participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2963553150",
+   "title": "Protein supplementation combined with low-intensity resistance training in geriatric medical patients during and after hospitalisation: a randomised, double-blind, multicentre trial",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "clinical patient population",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4298086528",
+   "title": "The Acute and Chronic Effects of Implementing Velocity Loss Thresholds During Resistance Training: A Systematic Review, Meta-Analysis, and Critical Evaluation of the Literature",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of human resistance training interventions"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2483560356",
+   "title": "Concurrent exercise training: do opposites distract?",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "examines concurrent resistance training effects"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4402221590",
+   "title": "Cardiovascular training versus resistance training for fatigue in people with cancer",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cancer patients, a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2070717590",
+   "title": "Aging, Resistance Training, and Diabetes Prevention",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Review of RT for diabetes prevention in older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7212978350",
+   "title": "Effect of rest interval time during resistance exercise on postprandial triglyceride concentrations in resistance-trained young men",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention in healthy young men"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4394926140",
+   "title": "Creatine supplementation and resistance training to preserve muscle mass and attenuate cancer progression (CREATINE-52): a protocol for a double-blind randomized controlled trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves cancer patients, a clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2554107085",
+   "title": "Effects of Different Concurrent Resistance and Aerobic Training Frequencies on Muscle Power and Muscle Quality in Trained Elderly Men: A Randomized Clinical Trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training component in healthy elderly participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7213970672",
+   "title": "Microbiota-mediated gut–brain communication following whey protein supplementation and resistance training: current evidence linking gastrointestinal function and cognitive health",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Human resistance training + whey protein, outcomes include cognition"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7168422245",
+   "title": "Examining the feasibility and preliminary effects of resistance exercise training and creatine supplementation in individuals treated for colorectal cancer",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Participants are cancer patients, a clinical rehabilitation population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7212086609",
+   "title": "Prescribed Rest Intervals in Home-Based Exercise Therapy and Rehabilitation: A Narrative Review and Conceptual Framework for Temporal Fidelity",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focuses on rehabilitation, not healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2116958312",
+   "title": "The effects of partial vascular occlusion on gaining muscle strength",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of BFR resistance training in healthy youths and seniors"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7203478097",
+   "title": "The comparative effects of eccentric and concentric contractions and various load-intensities on improving muscle tendon mechanical properties. A narrative review",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focus on rehab/tendon clinical populations"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2783468142",
+   "title": "Protein-enriched, milk-based supplement to counteract sarcopenia in acutely ill geriatric patients offered resistance exercise training during and after hospitalisation: study protocol for a randomised, double-blind, multicentre trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Involves acutely ill hospitalized older patients (clinical population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7205638148",
+   "title": "Examining the effects of creatine supplementation and resistance training on cognition and brain health in older adults with mild cognitive impairment (MCI): a 26-week randomized controlled trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focuses on MCI, a clinical condition"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4387669911",
+   "title": "Effect of 8-week frequency-specific electrical muscle stimulation combined with resistance exercise training on muscle mass, strength, and body composition in men and women: a feasibility and safety study",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "young healthy adults with resistance training"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7133212048",
+   "title": "The Repair Tax of Resistance Training: Microdamage Control as a Molecular Gatekeeper of Hypertrophy",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of human resistance training mechanisms and hypertrophy"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2172023883",
+   "title": "Effects of resistance training on the inflammatory response",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of human resistance training effects, no clinical/rehab focus"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2967220888",
+   "title": "Measurement of Strength Gains Using a Fascial System Exercise Program",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult resistance training intervention with strength outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2946386196",
+   "title": "Antimicrobial Resistance in Nepal",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Not about resistance training in humans"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2522865816",
+   "title": "Effects of whey protein supplement in the elderly submitted to resistance training: systematic review and meta-analysis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Systematic review of resistance training with whey protein in elderly"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2765853994",
+   "title": "Creatine Use in Sports",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "mixed",
+   "reason": "No resistance training intervention or muscle outcome",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2089901353",
+   "title": "Exercise Training for Blood Pressure: A Systematic Review and Meta‐analysis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of resistance training effects in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7223041453",
+   "title": "Creatine-based multi-ingredient supplementation improves recovery and alters anabolic–catabolic responses without augmenting short-term strength gains in male resistance-training novices: A randomized controlled trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult novices, RT + supplement trial"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2190941247",
+   "title": "Heavy resistance training and peri-exercise ingestion of a multi-ingredient ergogenic nutritional supplement in males: effects on body composition, muscle performance and markers of muscle protein synthesis.",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "healthy adults undergoing resistance training with nutritional supplement"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7240129965",
+   "title": "Can the intake of plant-based protein supplementation combined with resistance training produce equivalent effects on muscle mass as animal-based protein supplementation combined with resistance training?",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of healthy adults using resistance training with protein supplementation"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2566919991",
+   "title": "Effects of protein–carbohydrate supplementation on immunity and resistance training outcomes: a double-blind, randomized, controlled clinical trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with protein supplement in healthy athletes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4391765353",
+   "title": "Improving sarcopenia in older adults: a systematic review and meta-analysis of randomized controlled trials of whey protein supplementation with or without resistance training",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "clinical sarcopenia patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3121469164",
+   "title": "Mitochondrial Content, but Not Function, Is Altered With a Multimodal Resistance Training Protocol and Adequate Protein Intake in Leucine-Supplemented Pre/Frail Women",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves pre/frail elderly women (clinical frailty)."
+  },
+  {
+   "openalex_id": "https://openalex.org/W4401015625",
+   "title": "Unveiling the Effects of Interval Resistance Training and Chlorella Vulgaris Supplementation on Meteorin-like Protein and Oxidative Stress in Obese Men",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training in obese adults, not clinical patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7148910851",
+   "title": "Optimizing the Anabolic Response in Sedentary Populations: A Review of Resistance Training Variables and Nutritional Modulators of the IGF-1 Axis",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of resistance training variables in healthy sedentary people"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2550760408",
+   "title": "Resistance training with instability is more effective than resistance training in improving spinal inhibitory mechanisms in Parkinson’s disease",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves Parkinson’s disease patients (clinical population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2890387926",
+   "title": "Protein supplementation intake for bodybuilding and resistance training may impact sperm quality of subfertile men undergoing fertility treatment: a pilot study",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "studies subfertile men undergoing fertility treatment (clinical patients)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2070695451",
+   "title": "Proprioceptive neuromuscular facilitation and strength training to gain muscle strength in elderly women",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training intervention in elderly women"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4415147149",
+   "title": "Lemon myrtle extract enhances muscle hypertrophy induced by low-load bodyweight resistance training in older adults: Findings from two independent randomized controlled trials",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training + supplement in healthy older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2041724564",
+   "title": "Evidence for Resistance Training as a Treatment Therapy in Obesity",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of resistance training effects on obesity in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2884374626",
+   "title": "Effects of protein supplement in combination with resistance training on body composition and physical function in middle aged and older women with knee osteoarthritis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "OA patients are clinical population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3004669575",
+   "title": "Automated assessment of regional muscle volume and hypertrophy using MRI",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Validates MRI method; includes 8‑week resistance training in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2137528581",
+   "title": "Resistance Training After Myocardial Infarction in Rats: Its Role on Cardiac and Autonomic Function",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "animal study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3183027608",
+   "title": "Creatine Enhances the Effects of Cluster-Set Resistance Training on Lower-Limb Body Composition and Strength in Resistance-Trained Men: A Pilot Study",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained adults with RT + creatine intervention"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2118315968",
+   "title": "Eccentric and concentric cardiac hypertrophy induced by exercise training: microRNAs and molecular determinants",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "mixed",
+   "reason": "Focuses on cardiac hypertrophy, not resistance training outcomes",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4400059976",
+   "title": "Efficacy of Pea Protein Supplementation in Combination with a Resistance Training Program on Muscle Performance in a Sedentary Adult Population: A Randomized, Comparator-Controlled, Parallel Clinical Trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT + protein supplement in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2790013998",
+   "title": "Inter-individual variation in adaptations to endurance and resistance exercise training: genetic approaches towards understanding a complex phenotype",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of human resistance training studies"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3042472803",
+   "title": "Sarcoplasmic Hypertrophy in Skeletal Muscle: A Scientific “Unicorn” or Resistance Training Adaptation?",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of human resistance training adaptations"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4398794348",
+   "title": "Effectiveness of Aerobic, Resistance, and Combined Training for Hypertensive Patients: A Randomized Controlled Trial",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves hypertensive patients (clinical population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7128719137",
+   "title": "Effects of 8 Weeks of Resistance Training Combined with a High-Protein Diet and Omega-3 Supplementation on Body Composition, Muscular Performance, and Muscle-Related Biomarkers in Overweight Women",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy overweight women undergoing resistance training with diet/supplements"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3128849795",
+   "title": "Creatine in Health and Disease",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "focuses on disease and therapeutic contexts"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4378516861",
+   "title": "Characteristics of resistance training-based protocols in older adults with sarcopenic obesity: a scoping review of training procedure recommendations",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Focuses on sarcopenic obesity, a clinical condition",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4360616249",
+   "title": "Effects of Protein Supplementation Combined with Resistance Exercise Training on Walking Speed Recovery in Older Adults with Knee Osteoarthritis and Sarcopenia",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Includes participants with knee osteoarthritis, a clinical condition"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2505817793",
+   "title": "Protein Supplementation Has Minimal Effects on Muscle Adaptations during Resistance Exercise Training in Young Men: A Double-Blind Randomized Clinical Trial",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Healthy young adults; resistance training with protein supplement"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3020578295",
+   "title": "The Effectiveness of Frequency-Based Resistance Training Protocols on Muscular Performance and Hypertrophy in Trained Males: A Critically Appraised Topic",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training frequency study in healthy trained males"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3186727302",
+   "title": "Effects of Protein-Rich Nutritional Composition Supplementation on Sarcopenia Indices and Physical Activity during Resistance Exercise Training in Older Women with Knee Osteoarthritis",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "knee osteoarthritis patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4386845331",
+   "title": "Cluster Sets to Prescribe Interval Resistance Training: A Potential Method to Optimise Resistance Training Safety, Feasibility and Efficacy in Cardiac Patients",
+   "stratum": "near_reject",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study focuses on cardiac patients, a clinical rehabilitation population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2129668538",
+   "title": "Pea proteins oral supplementation promotes muscle thickness gains during resistance training: a double-blind, randomized, Placebo-controlled clinical trial vs. Whey protein",
+   "stratum": "near_reject",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training + protein supplementation in healthy young adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2548280014",
+   "title": "Effect of High-Speed Strength Training on Physical Performance in Young Soccer Players of Different Ages",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training with plyometrics in healthy youth athletes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2955643198",
+   "title": "How Microstructure and Pore Moisture Affect Strength Gain in Portlandite-Enriched Composites That Mineralize CO 2",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Material science study, no human resistance training"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4411349011",
+   "title": "Validation of equation based on repetitions to failure to adjust the training load in women undergoing resistance training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy middle‑aged women undergoing resistance training"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4407640072",
+   "title": "The Effect of Proximity‐To‐Failure on Perceptual Responses to Resistance Training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention with perceptual outcomes in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2973208455",
+   "title": "The Acute Neuromuscular Responses to Cluster Set Resistance Training: A Systematic Review and Meta-Analysis",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Reviews acute RT cluster set effects in healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7124444879",
+   "title": "Is lower training frequency more effective? Dose-response relationship of in-season flywheel resistance training on vertical jump and sprint performance in male team-sport athletes: a meta analysis",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Meta-analysis of resistance training in healthy athletes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4312401805",
+   "title": "Effect of milk protein concentrate supplementation on body composition and biochemical markers during a resistance training program",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT + protein supplement in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7166536120",
+   "title": "Acute fatigue and recovery responses to resistance training performed to momentary muscular failure: an exploratory multimodal physiological study",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy trained adults undergoing resistance training intervention"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4283584950",
+   "title": "The effect of eight weeks of progressive resistance training with garlic supplementation on serum levels of C-reactive protein and insulin resistance in overweight women",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with garlic supplement in healthy overweight women"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4200219266",
+   "title": "Effects of Resistance Training Intervention along with Leucine-Enriched Whey Protein Supplementation on Sarcopenia and Frailty in Post-Hospitalized Older Adults: Preliminary Findings of a Randomized Controlled Trial",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Post-hospitalized older adults are a clinical/recovery population"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2899181326",
+   "title": "Profiling Rest Intervals between Sets and Associated Factors in Resistance Training Participants",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "mixed",
+   "reason": "Observational questionnaire, no RT intervention or muscle outcome",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7225425543",
+   "title": "Effects of Self-Selected Rest Interval between Sets on Resistance Training Session Total Volume",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained participants; resistance training intervention studied"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4403064422",
+   "title": "The effect of home‐based neuromuscular electrical stimulation‐resistance training and protein supplementation on lean mass in persons with spinal cord injury: A pilot study",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves spinal cord injury patients (rehabilitation population)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4401589718",
+   "title": "Give it a rest: a systematic review with Bayesian meta-analysis on the effect of inter-set rest interval duration on muscle hypertrophy",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training variable (rest interval) in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2158904838",
+   "title": "Effects of different resistance exercise protocols on nitric oxide, lipid peroxidation and creatine kinase activity in sedentary males.",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult males undergoing resistance protocols"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2060455910",
+   "title": "Effects of different resistance training frequencies on flexibility in older women",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "RT frequency study on flexibility in healthy older women"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2237675832",
+   "title": "Is Resistance Training to Muscular Failure Necessary?",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Examines resistance training variable (failure) in healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2585865911",
+   "title": "Controlled Trial on the Effects of Creatine Supplementation on Muscle Mass and Function among Older Women Subjected to Resistance Training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training with creatine in healthy older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2591865095",
+   "title": "Effects of milk proteins supplementation in older adults undergoing resistance training: A meta-analysis of randomized control trials",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Meta-analysis of RT + protein in healthy older adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4309697868",
+   "title": "Acute Effect of Resistance Training With Blood Flow Restriction on Perceptual Responses: A Systematic Review and Meta-Analysis",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of BFR resistance training in humans"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2106495308",
+   "title": "Does long-term creatine supplementation impair kidney function in resistance-trained individuals consuming a high-protein diet?",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training + creatine in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4220807345",
+   "title": "Comparative Study of Resistance Training with Different Frequency on the Selected Machine Exercises Among University Males",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training frequency study in healthy young adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4220781213",
+   "title": "Effects of Resistance Training and/or Protein Supplementation on Usual Gait Speed in Postmenopausal Women: A Systematic Review and Meta-Analysis",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Systematic review of resistance training in postmenopausal women"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4398188108",
+   "title": "The Autoregulation Rest-Redistribution Training Method Mitigates Sex Differences in Neuromuscular and Perceived Fatigue During Resistance Training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Healthy adults; resistance training intervention studied"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4405499981",
+   "title": "Spatio-Temporal and Mechanical Analysis of Bench Press Phases: Barbell Kinematics and Dynamics Across Different Load Intensities",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "bench press kinematics in healthy young adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2967285546",
+   "title": "A case for considering age and sex when prescribing rest intervals in resistance training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of resistance training rest interval research across ages and sexes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4409324324",
+   "title": "Arterial Stiffness and Wave Reflection Responses Following Heavy and Moderate Load Resistance Training Protocols",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult resistance training study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1976985946",
+   "title": "Does frequency of resistance training affect tibial cortical bone density in older women? A randomized controlled trial",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "RT frequency trial in healthy older women measuring bone outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2277639545",
+   "title": "Effect of Creatine Monohydrate Ingestion during Resistance Training on Serum Creatine Kinase and Creatine Kinase Myocard Isoenzyme in Non-athlete Men",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult men; resistance training with creatine supplement"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7172235253",
+   "title": "Low-frequency resistance training enhances 2D strain-derived carotid strain and strain rate: a novel longitudinal application of strain imaging in healthy middle-aged females",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "healthy resistance training study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2981052320",
+   "title": "Heart Rate Variability, Neuromuscular and Perceptual Recovery Following Resistance Training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3200484093",
+   "title": "Modeling of Metabolic Equivalents (METs) during Moderate Resistance Training Exercises",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Human resistance training study measuring metabolic outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7128164734",
+   "title": "Acute effects of flywheel resistance training on jump and sprint performance: a systematic review and meta-analysis of inertial-load and rest-interval moderators",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of resistance training interventions"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3035528842",
+   "title": "The Effects of Concurrent Training Combining Both Resistance Exercise and High-Intensity Interval Training or Moderate-Intensity Continuous Training on Metabolic Syndrome",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves participants with metabolic syndrome (clinical condition)"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4319460774",
+   "title": "Influence of Resistance Training Proximity-to-Failure, Determined by Repetitions-in-Reserve, on Neuromuscular Fatigue in Resistance-Trained Males and Females",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance‑trained adults; RT intervention with RIR variables"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7165149466",
+   "title": "Exercise Selection and Rest Interval Duration Differentially Affect Post-Exercise Cardiac Autonomic Responses Following Resistance Training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained participants; resistance training intervention studied"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4389225305",
+   "title": "Meta-analysis of variation in sport and exercise science: Examples of application within resistance training research",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Meta-analysis of resistance training studies, within scope"
+  },
+  {
+   "openalex_id": "https://openalex.org/W1788673896",
+   "title": "A multi-ingredient containing, proteins, carbohydrate and creatine does not attenuate humoral immune response or performance decrease compared to carbohydrate during resistance training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with protein/creatine supplement"
+  },
+  {
+   "openalex_id": "https://openalex.org/W7171307005",
+   "title": "Optimizing the dose of flywheel resistance training for jumping and sprinting performance: a systematic review and meta-analysis of frequency, volume, and duration",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention in healthy athletes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4402655854",
+   "title": "Antimicrobial resistance: a concise update",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "No resistance training; focuses on antimicrobial resistance"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2732601140",
+   "title": "The Impact of Proximity on Resistance to Foreign Ventures: The Cases of India and Japan",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Not a human resistance training study"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4409364689",
+   "title": "The effect of different proximities to failure on arterial stiffness following resistance training protocols matched for volume‐load",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult resistance training study with vascular outcome"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4403379789",
+   "title": "The effects of resistance training to near volitional failure on motor unit recruitment during neuromuscular fatigue",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention in healthy adults with neuromuscular outcomes"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2066884461",
+   "title": "Effects of Circuit Resistance Training and P Timely Protein Supplementation on Exercise-Induced Fat Oxidation in Tetraplegic Adults",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves spinal cord injury patients"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4404514864",
+   "title": "Effects of Different Loading Programs on Finger Strength in Rock Climbers",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance finger training in healthy climbers"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3110082071",
+   "title": "The knowns and unknowns of neural adaptations to resistance training",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of neural adaptations to resistance training in healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2570685172",
+   "title": "Resistance Training Effects on Metabolic Function Among Youth: A Systematic Review",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Systematic review of resistance training effects in healthy youth"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4294647534",
+   "title": "Risks of resistance training for the bruxism: a cross-sectional study",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "adult",
+   "reason": "No muscle-related outcome measured",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3112786849",
+   "title": "Comparison between Two Inspiratory Muscle Training Protocols, Low Loads versus High Loads, in Institutionalized Elderly Women: A Double-Blind Randomized Controlled Trial",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "older",
+   "reason": "Respiratory muscle training, not skeletal resistance training",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7140216681",
+   "title": "When Load Does not Tell the Whole Story: Acute Effects of Effort Matched Resistance Training Protocols on Arterial Stiffness",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human adults, RT intervention, vascular outcome measured"
+  },
+  {
+   "openalex_id": "https://openalex.org/W3040977890",
+   "title": "Characterization of aquaporin-4 in hypertrophied muscle following resistance exercise training",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "Molecular mechanism focus, not primary muscle outcome",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2172313311",
+   "title": "Occupation-dependent loading increases bone strength in men",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "adult",
+   "reason": "No resistance training intervention; occupational loading not qualifying.",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2132579793",
+   "title": "Loading dose of physical activity is related to muscle strength and bone density in middle-aged women",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "Observational activity, no resistance training",
+   "label_scope_v1": "out",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2757710276",
+   "title": "Time course of recovery following resistance training leading or not to failure",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Studies recovery after resistance training with/without failure in healthy participants"
+  },
+  {
+   "openalex_id": "https://openalex.org/W4415075619",
+   "title": "Factors influencing the accuracy of the repetition in reserve scale in resistance training: a systematic review",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of resistance training RIR accuracy in healthy adults"
+  },
+  {
+   "openalex_id": "https://openalex.org/W2138529828",
+   "title": "The Regulation and Expression of the Creatine Transporter: A Brief Review of Creatine Supplementation in Humans and Animals",
+   "stratum": "near_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "mixed",
+   "reason": "Review; no resistance training intervention",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2987010440",
+   "title": "The effects of measurement error and testing frequency on the fitness-fatigue model applied to resistance training: A simulation approach",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Simulation study, no human participants",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4280574255",
+   "title": "Creatine O'Clock: Does Timing of Ingestion Really Influence Muscle Mass and Performance?",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Narrative review of creatine timing with resistance training outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4402839687",
+   "title": "Cardiovascular and metabolic demands of the kettlebell swing using a Tabata interval versus a traditional resistance protocol",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "youth",
+   "reason": "No muscle/strength outcome measured",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7140659773",
+   "title": "Creatine Monohydrate Enhanced Fixed and Planned Load Reduction Resistance Training without Altering Ratings of Perceived Exertion",
+   "stratum": "near_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adults, resistance training + creatine, muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4224980363",
+   "title": "Changes in Heart Rate Variability and Post‐Exercise Blood Pressure from Manipulating Rest Intervals Between Sets of Resistance Training",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with BP/HRV outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7134916794",
+   "title": "Effects of different full squat training volumes matched for fatigue on strength gains, neuromuscular adaptations, and muscle hypertrophy",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention with strength and hypertrophy outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2009605502",
+   "title": "Bench Press and Push-up at Comparable Levels of Muscle Activity Results in Similar Strength Gains",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training study measuring strength gains",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2477777230",
+   "title": "Acute Physiological and Performance Responses to High-Intensity Resistance Circuit Training in Hypoxic and Normoxic Conditions",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training in healthy young adults with performance outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4368376103",
+   "title": "The role of resistance training and creatine supplementation on oxidative stress, antioxidant defense, muscle strength, and quality of life in older adults",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "RT + supplement in healthy older adults measuring strength and muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4205125824",
+   "title": "The Effect of Load and Volume Autoregulation on Muscular Strength and Hypertrophy: A Systematic Review and Meta-Analysis",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of resistance training autoregulation on strength/hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3008363345",
+   "title": "Recent advances in understanding resistance exercise training-induced skeletal muscle hypertrophy in humans",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "adult",
+   "reason": "focuses on molecular mechanisms, not human outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2116911880",
+   "title": "Skeletal Muscle Hypertrophy and Decreased Intramuscular Fat After Unilateral Resistance Training in Spinal Cord Injury: Case Report",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Study involves spinal cord injury patients",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3009245019",
+   "title": "Resistance exercise training promotes fiber type-specific myonuclear adaptations in older adults",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Human resistance training study measuring muscle hypertrophy in older adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2165031424",
+   "title": "Concentric myocardial hypertrophy after one year of increased training volume in experienced distance runners",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "No resistance training intervention",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2194938837",
+   "title": "The effects of pre-exhaustion, exercise order, and rest intervals in a full-body resistance training intervention",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention with strength/body composition outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7131064815",
+   "title": "Does Performing Partial Repetitions Beyond Momentary Failure Enhance Muscle Hypertrophy in Volume-Load-Equated Calf-Raise Resistance Training",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance training study measuring hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2143262006",
+   "title": "Effect of rest interval on cardiovascular responses after resistance exercise",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training with cardiovascular outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W86892442",
+   "title": "Acute and chronic effect of interval and continues resistance training on salivary IgA and cortisol levels in active young women",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "youth",
+   "reason": "No muscle-related outcomes measured",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2589022460",
+   "title": "The Effects of Resistance Training Frequency On Muscle Hypertrophy And Strength In Healthy Trained Individuals: Literature Review",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of resistance training effects on strength/hypertrophy in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2594582436",
+   "title": "Post-absorptive muscle protein turnover affects resistance training hypertrophy",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "Likely mechanistic molecular study, not a human resistance training outcome trial",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7117720753",
+   "title": "Muscle Hypertrophy, Strength, and Salivary Hormone Changes Following 9 Weeks of High- or Low-Load Resistance Training",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with strength/hypertrophy outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2809056775",
+   "title": "Effects of equal-volume resistance training with different training frequencies in muscle size and strength in trained men",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT intervention with strength/size outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3100173549",
+   "title": "Training Programs Designed for Muscle Hypertrophy in Bodybuilders: A Narrative Review",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Narrative review of resistance training for hypertrophy in healthy bodybuilders",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7225081858",
+   "title": "Hypoxic training is superior to protein supplementation during resistance exercise in team-sport athletes",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy athletes with resistance training outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4403835094",
+   "title": "Effects of Creatine Supplementation and Resistance Training on Muscle Strength Gains in Adults <50 Years of Age: A Systematic Review and Meta-Analysis",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Systematic review of creatine + resistance training on strength in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2953033490",
+   "title": "Muscle fiber hypertrophy in response to 6 weeks of high-volume resistance training in trained young men is largely attributed to sarcoplasmic hypertrophy",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training study measuring muscle hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2932714844",
+   "title": "Similar Effects of 24 Weeks of Resistance Training Performed with Different Frequencies on Muscle Strength, Muscle Mass, and Muscle Quality in Older Women",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training intervention with strength/mass outcomes in healthy older women",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4206052139",
+   "title": "Effects of Detraining on Muscle Strength and Hypertrophy Induced by Resistance Training: A Systematic Review",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Reviews detraining after resistance training measuring strength/hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4393142008",
+   "title": "Comparative Efficacy of Different Protein Supplements on Muscle Mass, Strength, and Physical Indices of Sarcopenia among Community-Dwelling, Hospitalized or Institutionalized Older Adults Undergoing Resistance Training: A Network Meta-Analysis of Randomized Controlled Trials",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "older",
+   "reason": "includes clinical/rehab participants with health conditions",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4385272036",
+   "title": "Effects of variable resistance training versus conventional resistance training on muscle hypertrophy: a systematic review",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of resistance training effects on muscle hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4407343907",
+   "title": "Resistance training beyond momentary failure: the effects of past-failure partials on muscle hypertrophy in the gastrocnemius",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training study measuring muscle hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7214944788",
+   "title": "Is failure necessary for muscle growth? An updated review of resistance training to concentric failure",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of human RT studies on hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4412640771",
+   "title": "Sex Differences in Bench Press Strength and Power: A Velocity-Based Analysis Adjusted for Body Composition",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training outcomes measured in healthy young adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2556759953",
+   "title": "Creatine in combination with resistance training and improvement in muscle strength: evaluation of a health claim pursuant to Article 13(5) of Regulation (EC) No 1924/2006",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Creatine + resistance training measuring strength in healthy humans",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3031853458",
+   "title": "The Effects of Protein and Carbohydrate Supplementation on Muscular Regeneration After Intense Resistance Training in Soccer Players",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance training with protein/carbohydrate supplement measuring muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2988474165",
+   "title": "PROTEIN SUPPLEMENTATION DOES NOT RESCUE MUSCLE MASS AND FUNCTION–HEAVY RESISTANCE TRAINING IS REQUIRED",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "older",
+   "reason": "No resistance training intervention included",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2134243457",
+   "title": "Effect of protein/essential amino acids and resistance training on skeletal muscle hypertrophy: A case for whey protein",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Review of protein + resistance training on muscle outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4297255329",
+   "title": "MANIPULATING RESISTANCE TRAINING VARIABLES TO INDUCE MUSCLE STRENGTH AND HYPERTROPHY: A BRIEF NARRATIVE REVIEW",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "youth",
+   "reason": "Narrative review of RT variables on strength/hypertrophy in healthy young adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2010550047",
+   "title": "Soy protein based supplementation supports metabolic effects of resistance training in previously untrained middle aged males",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT + protein, healthy adults, muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2994921829",
+   "title": "The effect of repetition ranges on maximal strength and hypertrophy",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with strength/hypertrophy outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2971572033",
+   "title": "Early Timeline of Lean Tissue Mass and Strength Improvements in Trained Men Following a High Volume/Frequency Resistance Training Program",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy trained adults; RT intervention with lean mass/strength outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W1964184116",
+   "title": "Methodological considerations for blood flow restricted resistance exercise",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of BFR resistance training outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2145757755",
+   "title": "Enhancing cognitive functioning in the elderly: multicomponent vs resistance training",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "out",
+   "population": "older",
+   "reason": "Outcomes focus on cognition, not muscle/strength measures",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2120601676",
+   "title": "Elevations in ostensibly anabolic hormones with resistance exercise enhance neither training-induced muscle hypertrophy nor strength of the elbow flexors",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training with muscle outcomes in healthy participants",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2993530164",
+   "title": "Maximizing Muscle Hypertrophy: A Systematic Review of Advanced Resistance Training Techniques and Methods",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of human RT studies on hypertrophy",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2137912297",
+   "title": "The effect of training volume and intensity on improvements in muscular strength and size in resistance-trained men",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance-trained adult males; RT intervention with strength/size outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W205494507",
+   "title": "Influence of two different rest interval lengths in resistance training sessions for upper and lower body.",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training study measuring performance outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4281381412",
+   "title": "Progressive Resistance Training for Concomitant Increases in Muscle Strength and Bone Mineral Density in Older Adults: A Systematic Review and Meta-Analysis",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "older",
+   "reason": "Systematic review of resistance training effects on strength and bone in healthy older adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7212384023",
+   "title": "Modeling the load-velocity relationship from training-derived velocity data in resistance training: A proof-of-concept study",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "adult",
+   "reason": "No training intervention, only observational modeling",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3005363493",
+   "title": "Effect of blood‐flow restricted vs heavy‐load strength training on muscle strength: Systematic review and meta‐analysis",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of resistance training strength outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3131924960",
+   "title": "Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of resistance training adaptations in healthy people",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2962470497",
+   "title": "Effects of Lengthening Velocity During Eccentric Training on Vastus Lateralis Muscle Hypertrophy",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human resistance training study measuring hypertrophy and strength in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2618311965",
+   "title": "Protein Supplementation to Augment the Effects of High Intensity Resistance Training in Untrained Middle-Aged Males: The Randomized Controlled PUSH Trial",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adults, resistance training with protein, measures strength/body composition",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W7106238247",
+   "title": "Evidence on the effects of creatine and dosage",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Creatine supplement with resistance training affecting muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3013253287",
+   "title": "Cortical, Corticospinal, and Reticulospinal Contributions to Strength Training",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Animal study, not human",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4398161734",
+   "title": "Potential Moderators of the Effects of Blood Flow Restriction Training on Muscle Strength and Hypertrophy: A Meta-analysis Based on a Comparison with High-Load Resistance Training",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Meta-analysis of resistance training interventions with strength/hypertrophy outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2909145672",
+   "title": "Periodized Resistance Training for Enhancing Skeletal Muscle Hypertrophy and Strength: A Mini-Review",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of resistance training periodization effects on muscle",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2296063776",
+   "title": "Daily Overfeeding from Protein and/or Carbohydrate Supplementation for Eight Weeks in Conjunction with Resistance Training Does not Improve Body Composition and Muscle Strength or Increase Markers Indicative of Muscle Protein Synthesis and Myogenesis in Resistance-Trained Males.",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training with nutrition supplement; measures muscle outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2320463557",
+   "title": "Effects of two programs of metabolic resistance training on strength and hypertrophy",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training with strength/hypertrophy outcomes in healthy participants",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4405330435",
+   "title": "Velocity Loss as an Indicator of Resistance Training Volume in Women",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training set to failure with velocity outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4323052192",
+   "title": "Efficacy of resistance training in hypoxia on muscle hypertrophy and strength development: a systematic review with meta-analysis",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Systematic review of human resistance training outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4400236951",
+   "title": "Increased Neuromuscular Activity, Force Output, and Resistance Exercise Volume When Using 5-Minute Compared with 2-Minute Rest Intervals Between the Sets",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Acute resistance training study measuring force and neuromuscular outcomes in healthy young adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4416304421",
+   "title": "Resistance training volume and nutrient intake on lean mass and strength in young women",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT + nutrition, lean mass/strength outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2108118792",
+   "title": "Strength and hypertrophy responses to constant and decreasing rest intervals in trained men using creatine supplementation",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "RT + creatine, strength/hypertrophy outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2332855805",
+   "title": "Effect of resistance training at a frequency of once a week on muscular strength in college students",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance training study measuring strength",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2127462131",
+   "title": "Acute GH and IGF-I responses to short vs. long rest period between sets during forced repetitions resistance training system",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained adults; hormonal outcomes relevant to muscle adaptation",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4394838197",
+   "title": "Not Only Protein: Dietary Supplements to Optimize the Skeletal Muscle Growth Response to Resistance Training: The Current State of Knowledge",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "mixed",
+   "reason": "Review of supplements with resistance training on muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4297565205",
+   "title": "Effects of one long vs. two short resistance training sessions on training volume and affective responses in resistance-trained women",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy resistance-trained adults; RT intervention with relevant outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3033257489",
+   "title": "Effects of 6 Weeks of Traditional Resistance Training or High Intensity Interval Resistance Training on Body Composition, Aerobic Power and Strength in Healthy Young Subjects: A Randomized Parallel Trial",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "youth",
+   "reason": "Resistance training intervention with muscle outcomes in healthy young adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2912422982",
+   "title": "Reduced frequency of resistance-type exercise training promotes adaptation of the aged skeletal muscle microenvironment",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "out",
+   "population": "clinical",
+   "reason": "Animal study, not human",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4411219411",
+   "title": "The Impact of Protein and Amino Acid Supplementation on Muscular Strength and Endurance in Recreational Gym-Goers During 8-Week Resistance Training",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human RT + protein supplement measuring strength",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2742390057",
+   "title": "The effects of eight weeks of resistance training on some muscle hypertrophy and physiological parameters in elderly men",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "RT with muscle hypertrophy outcomes in elderly",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4403547610",
+   "title": "Low-intensity blood flow restriction (LI-BFR) and moderate-intensity improves quadriceps strength and thigh circumference in older women",
+   "stratum": "clear_pass",
+   "split": "heldout",
+   "label": "in",
+   "population": "older",
+   "reason": "Resistance training with BFR in healthy older women measuring strength",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W2898879926",
+   "title": "Maximum Strength Development and Volume-Load during Concurrent High Intensity Intermittent Training Plus Strength or Strength-Only Training.",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Resistance training intervention with strength outcomes in healthy adults",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W4413998945",
+   "title": "Strength gains and distinct acute blood lactate responses induced by stepwise load reduction training in healthy males",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Healthy adult resistance training study with strength and muscle outcomes",
+   "scope_version": 2
+  },
+  {
+   "openalex_id": "https://openalex.org/W3034612614",
+   "title": "How Are Mechanical, Physiological, and Perceptual Variables Affected by the Rest Interval Between Sets During a Flywheel Resistance Session?",
+   "stratum": "clear_pass",
+   "split": "tuning",
+   "label": "in",
+   "population": "adult",
+   "reason": "Human flywheel resistance training with acute strength/physiological outcomes",
+   "scope_version": 2
+  }
+ ],
+ "tokens_by_day": {
+  "2026-11-27": 190151
+ },
+ "note": "tokens_by_day 2026-11-27 includes ~5K tokens of pilot and lost relabel calls not counted in tokens_used"
+}

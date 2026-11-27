@@ -60,6 +60,25 @@ FITNESS_TERMS = {
 # Curation
 OPENALEX_MAILTO = os.getenv("OPENALEX_MAILTO", "")
 OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY", "")  # free key at openalex.org/settings/api; without it the IP shares $0.10/day
+# What the library is for. One definition shared by the relevance gate (src/curate.py), the gate labeller
+# (evals/gate_label.py) and docs/configuration.md.
+CURATE_SCOPE = (
+    "In scope: human studies where resistance training is the intervention or exposure, alone or combined with "
+    "nutrition or supplements, with any outcome measured in people of any age (youth, adults, older adults). "
+    "Resistance training means any external or bodyweight load: free weights, machines, cables, elastic or "
+    "resistance bands, bodyweight/calisthenics, kettlebells, suspension training. Includes training variables "
+    "(volume, load, frequency, failure, rest, tempo, exercise choice), methods (blood-flow restriction, "
+    "plyometrics, cluster sets, feedback, range of motion, power training), testing and autoregulation (1RM, "
+    "RIR/RPE, velocity), and outcomes of lifting (strength, hypertrophy, power, bone, cardiometabolic, "
+    "brain/cognition, function). Nutrition and body composition (protein intake, energy deficit or surplus, i.e. "
+    "cutting or bulking, meal timing, supplements) are in scope when participants resistance train OR the outcome "
+    "is muscle mass, lean mass, strength or muscle protein synthesis in healthy people. "
+    "Out of scope: clinical or rehabilitation populations (patients, people with a disease, injury rehab), animal "
+    "or in-vitro work, mechanism-only molecular studies, studies with no resistance-training intervention or "
+    "exposure and no muscle outcome (e.g. device validity alone, endurance-only training, surveys of gym habits), "
+    "and weight-loss or obesity diet trials without resistance training that measure only fat or body weight."
+)
+GATE_AUDIT_DIR = ROOT / "evals" / "runs"  # gate_audit_<date>.csv per curate run (gitignored: holds abstracts)
 CURATE_QUERIES = [  # several angles so volume, frequency, load, etc. are all covered
     "resistance training hypertrophy",
     "training volume sets hypertrophy",
