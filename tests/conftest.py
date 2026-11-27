@@ -29,3 +29,10 @@ def no_network(monkeypatch):
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect)
     monkeypatch.setattr(socket, "getaddrinfo", guarded_lookup)
+
+
+@pytest.fixture(autouse=True)
+def audit_to_tmp(monkeypatch, tmp_path):
+    """Curate runs in tests write their gate audit to a temp folder, never evals/runs/."""
+    from src import config
+    monkeypatch.setattr(config, "GATE_AUDIT_DIR", tmp_path / "audit")

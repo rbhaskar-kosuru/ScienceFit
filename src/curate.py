@@ -1,6 +1,7 @@
 """Curation: new OpenAlex candidates + every paper already in the manifest → study design → relevance gate → score → cutoff
 → download new PDFs in rank order → manifest listing every judged paper as included or excluded (with the reason)."""
 import re
+import csv
 import sys
 import math
 import time
@@ -68,19 +69,67 @@ TRUSTED_JOURNALS = {
 
 WEIGHTS = {"citations": 0.4, "design": 0.35, "journal": 0.25}
 
-# Relevance gate. Paper must mention >=1 resistance-specific term and 0 excluded terms.
-# "training" and "muscle" alone are intentionally NOT here: endurance, cognitive and molecular papers all contain them.
-DOMAIN_TERMS = {
-    "resistance", "strength", "hypertrophy", "weightlifting",
-    "1rm", "one-repetition", "periodization", "training volume",
+# Relevance gate: see config.CURATE_SCOPE. Pass = >=1 include phrase, after ambiguity guards, and 0 exclude markers.
+# Include phrases mean resistance training; lone words ("resistance", "strength", "training") don't: they also mean
+# insulin resistance, strength of evidence, endurance training. Tuned on evals/gate_labels.json (tuning split).
+INCLUDE_TERMS = {
+    "resistance training", "resistance-training", "resistance exercise", "resistance exercises",
+    "resistance-exercise", "resistance trained", "resistance-trained", "resistive exercise", "resistive training",
+    "resistance program", "resistance programme", "resistance band", "resistance bands", "elastic band",
+    "strength training", "strength-training", "strength exercise", "strength exercises", "strength and conditioning",
+    "strength program", "strength programme", "strengthening exercises", "muscle-strengthening",
+    "weight training", "weight-training", "weightlifting", "weight lifting", "weightlifters", "powerlifting",
+    "powerlifters", "bodybuilding", "bodybuilders", "lifting",
+    "1rm", "1-rm", "one-repetition maximum", "one repetition maximum", "repetition maximum", "repetitions maximum",
+    "repetitions in reserve", "proximity to failure", "muscular failure", "momentary failure", "training to failure",
+    "periodization", "periodisation", "inter-set rest", "rest interval", "rest intervals",
+    "cluster set", "cluster sets", "velocity-based training", "velocity loss", "blood flow restriction",
+    "blood-flow restriction", "blood flow restricted", "blood flow-restricted", "blood-flow restricted", "kaatsu",
+    "plyometric", "plyometrics", "plyometric training", "eccentric training", "eccentric exercise",
+    "isokinetic training", "isometric training", "power training", "bench press", "back squat", "leg press",
+    "squat", "squats", "deadlift", "leg extension",
+    "muscle hypertrophy", "muscular hypertrophy", "skeletal muscle hypertrophy", "hypertrophy training",
+    # every kind of load (scope v2)
+    "free weights", "free-weight", "weight machines", "cable machine", "cable exercises", "cable pulley",
+    "elastic resistance", "theraband", "calisthenics",
+    "bodyweight training", "bodyweight exercise", "bodyweight exercises", "body weight exercises",
+    "body-weight exercises", "bodyweight resistance", "push-up", "push-ups", "pull-up", "pull-ups", "kettlebell",
+    "kettlebells", "suspension training", "trx",
+    # nutrition and body composition with a muscle outcome (scope v2); exclude markers still drop patient groups
+    "muscle protein synthesis", "myofibrillar protein synthesis", "muscle protein balance", "lean mass",
+    "lean body mass", "fat-free mass", "fat free mass", "muscle mass", "skeletal muscle mass", "appendicular lean",
 }
-# Clinical populations + molecular/mechanistic bench-science markers.
-CLINICAL_TERMS = {
-    "patients", "patient", "disease", "hiv", "arthritis", "osteoarthritis", "rheumatoid",
-    "cancer", "diabetes", "clinical", "metformin", "ibuprofen", "therapy",
-    "mtorc1", "hydroxylation", "signaling pathway", "gene expression",
-    "in vitro", "rodent", "mice", "murine", "knockout",
+INCLUDE_REGEX = [
+    r"\bhypertroph\w*\W+(?:\w+\W+){0,3}?(?:muscle|muscular|fib(?:er|re)s?|quadriceps|lean)\b",  # near "muscle"
+    r"\b(?:muscle|muscular|fib(?:er|re)|quadriceps)\w*\W+(?:\w+\W+){0,3}?hypertroph\w*",
+]
+# Phrases blanked out before include phrases are matched: they share words with resistance training.
+GUARD_TERMS = {
+    "insulin resistance", "vascular resistance", "peripheral resistance", "airway resistance",
+    "drug resistance", "antimicrobial resistance", "cardiac hypertrophy", "ventricular hypertrophy",
+    "left ventricular hypertrophy", "myocardial hypertrophy", "cardiomyocyte hypertrophy", "prostatic hypertrophy",
+    "strength of evidence", "strength of the evidence", "strength of recommendation", "strength of recommendations",
+    "strength of association", "lifting the", "heavy lifting",
 }
+# Population and study markers, not bare "clinical" or "therapy": "randomized clinical trial" must not exclude.
+EXCLUDE_TERMS = {
+    # clinical and rehab populations
+    "patients with", "patients undergoing", "patients who", "patients after", "in patients", "of patients",
+    "cancer patients", "cancer survivors", "with cancer", "breast cancer", "prostate cancer", "colorectal cancer",
+    "lung cancer", "cancer cachexia", "oncology", "tumor", "tumour", "chemotherapy", "hiv", "rheumatoid arthritis",
+    "osteoarthritis", "multiple sclerosis",
+    "parkinson's", "parkinson", "stroke", "copd", "chronic obstructive", "heart failure", "coronary artery disease",
+    "coronary heart disease", "chronic kidney disease", "hemodialysis", "haemodialysis",
+    "type 2 diabetes", "type 1 diabetes", "diabetic", "fibromyalgia", "cerebral palsy", "spinal cord injury",
+    "acl reconstruction", "anterior cruciate ligament reconstruction", "tendinopathy", "with dementia", "schizophrenia",
+    "cardiac rehabilitation", "postoperative", "post-operative", "metformin", "ibuprofen", "mild cognitive impairment",
+    "hospitalized", "hospitalised", "hospitalization", "hospitalisation", "geriatric patients", "acutely ill",
+    "sarcopenic obesity", "hyperlipidemia", "hyperlipidemic", "dyslipidemia",
+    # animal, in-vitro and mechanism-only work
+    "rats", "rat model", "mice", "mouse", "murine", "rodent", "rodents", "in vitro", "cell culture",
+    "myotubes", "c2c12", "knockout",
+}
+GATE_RULES = (INCLUDE_TERMS, EXCLUDE_TERMS, GUARD_TERMS, INCLUDE_REGEX)
 
 
 def term_pattern(terms) -> re.Pattern:
@@ -151,6 +200,10 @@ class Paper:
     pmid: str | None = None
     pubtypes: list[str] = field(default_factory=list)  # PubMed publication types
     design_source: str = "keyword"  # or "pubmed"
+    population: str = "unknown"  # best keyword guess: youth / adult / older / mixed / unknown. Metadata only
+    gate_pass: bool | None = None  # relevance gate decision; None = not judged yet
+    gate_include: list[str] = field(default_factory=list)  # include terms the gate matched
+    gate_exclude: list[str] = field(default_factory=list)  # exclude terms the gate matched
     text: str = field(default="", repr=False)
 
     def key(self) -> str:
@@ -311,6 +364,42 @@ def set_designs(papers: list[Paper], pubmed: PubMedClient, old: list[dict]) -> N
             p.design, p.design_source = design, "pubmed"
 
 
+# Population tag (metadata only; retrieval doesn't use it yet). Youth and older phrases are blanked before adult
+# terms are matched, so "older adults" doesn't also count as adults. Generic words ("women", "athletes") only say
+# adult when no age group is named: "elderly women" is older, not mixed.
+YOUTH_PATTERN = term_pattern({
+    "child", "children", "adolescent", "adolescents", "youth", "youths", "boys", "girls", "kids", "pediatric",
+    "paediatric", "prepubertal", "pre-pubertal", "pubertal", "schoolchildren", "school-aged", "juvenile", "juniors",
+    "young athletes", "youth athletes", "high school",
+})
+OLDER_PATTERN = term_pattern({
+    "older adults", "older adult", "older men", "older women", "older people", "older persons", "older individuals",
+    "older participants", "older subjects", "older population", "elderly", "seniors", "senior", "aged adults",
+    "nonagenarians", "octogenarians", "septuagenarians", "community-dwelling", "nursing home", "old adults", "old age",
+    "middle-aged and older", "aged 60", "aged 65", "aged over 60", "aged over 65", "over 60 years", "over 65 years",
+    "postmenopausal",
+})
+ADULT_PATTERN = term_pattern({  # an adult group named as such: alongside an age group it means mixed
+    "young adults", "young adult", "young men", "young women", "college", "collegiate", "university students",
+    "middle-aged", "aged 18", "18 to 35", "18-35",
+})
+ADULT_WEAK_PATTERN = term_pattern({
+    "adult", "adults", "men", "women", "males", "females", "trained men", "trained women", "untrained men",
+    "untrained women", "resistance-trained", "recreationally trained", "recreationally active", "athletes",
+    "bodybuilders", "powerlifters", "soldiers", "military", "healthy volunteers", "participants",
+})
+
+
+def population(text: str) -> str:
+    """youth / adult / older / mixed / unknown, from the title + abstract. A best guess from keywords."""
+    text = text.lower()
+    found = {name for name, pattern in (("youth", YOUTH_PATTERN), ("older", OLDER_PATTERN)) if pattern.search(text)}
+    rest = YOUTH_PATTERN.sub(" ", OLDER_PATTERN.sub(" ", text))  # "older adults", "young athletes" counted once
+    if ADULT_PATTERN.search(rest) or (not found and ADULT_WEAK_PATTERN.search(rest)):
+        found.add("adult")
+    return found.pop() if len(found) == 1 else ("mixed" if found else "unknown")
+
+
 class PaperParser:
     def __init__(self, current_year: int | None = None):
         self.current_year = current_year or date.today().year
@@ -337,6 +426,7 @@ class PaperParser:
             pdf_url=urls[0] if urls else None,
             retracted=raw.get("is_retracted", False),
             pdf_urls=urls,
+            population=population(blob),
             text=blob.lower(),
         )
 
@@ -377,16 +467,59 @@ class PaperParser:
         return " ".join(word for _, word in sorted(positions))
 
 
+@dataclass
+class GateResult:
+    passed: bool
+    include: list[str]  # include terms found (after ambiguity guards)
+    exclude: list[str]  # exclude terms found
+
+
+def matches(pattern: re.Pattern, text: str) -> list[str]:
+    return sorted({m.group(0) for m in pattern.finditer(text)})
+
+
 class RelevanceFilter:
-    def __init__(self, domain: set = DOMAIN_TERMS, clinical: set = CLINICAL_TERMS):
-        self.domain = term_pattern(domain)
-        self.clinical = term_pattern(clinical)
+    """Pass = at least one include term and no exclude term. Guard phrases ("insulin resistance") are blanked out
+    before include terms are matched, so they can't make a paper pass. Deterministic and offline."""
+
+    def __init__(self, include=INCLUDE_TERMS, exclude=EXCLUDE_TERMS, guards=GUARD_TERMS, include_regex=INCLUDE_REGEX):
+        self.include = re.compile("|".join([term_pattern(include).pattern, *include_regex]))
+        self.exclude = term_pattern(exclude)
+        self.guards = term_pattern(guards) if guards else None
+
+    def check(self, text: str) -> GateResult:
+        unguarded = self.guards.sub(" ", text) if self.guards else text
+        include, exclude = matches(self.include, unguarded), matches(self.exclude, text)
+        return GateResult(bool(include) and not exclude, include, exclude)
+
+    def judge(self, p: Paper) -> bool:
+        """Records the decision and the matched terms on the paper."""
+        result = self.check(p.text)
+        p.gate_pass, p.gate_include, p.gate_exclude = result.passed, result.include, result.exclude
+        return result.passed
 
     def apply(self, papers: list[Paper]) -> list[Paper]:
-        return [p for p in papers if self.relevant(p)]
+        return [p for p in papers if self.judge(p)]
 
     def relevant(self, p: Paper) -> bool:
-        return bool(self.domain.search(p.text)) and not self.clinical.search(p.text)
+        return self.check(p.text).passed
+
+
+AUDIT_COLUMNS = ["openalex_id", "doi", "paper_id", "title", "year", "journal", "design", "score", "gate_pass",
+                 "gate_include", "gate_exclude", "population", "included", "reason", "text"]
+
+
+def write_gate_audit(papers: list[Paper], path: Path) -> Path:
+    """Every gate decision of a run, rejections included. Holds abstracts, so it belongs in a gitignored folder."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=AUDIT_COLUMNS)
+        writer.writeheader()
+        for p in papers:
+            row = {c: getattr(p, c) for c in AUDIT_COLUMNS}
+            row["gate_include"], row["gate_exclude"] = "; ".join(p.gate_include), "; ".join(p.gate_exclude)
+            writer.writerow(row)
+    return path
 
 
 class Scorer:
@@ -508,11 +641,12 @@ def judge(ranked: list[Paper], target: int, cutoff: float | None, fetch, assign_
     gate, downloaded, attempts = RelevanceFilter(), 0, 0
     for p in ranked:
         p.included, p.reason = False, None
+        gate.judge(p)  # every paper gets a logged decision, retracted ones too
         if p.paper_id and valid_pdf(papers_dir / f"{p.paper_id}.pdf"):
             p.pdf_file = f"{p.paper_id}.pdf"
         if p.retracted:
             p.reason = "retracted"
-        elif not gate.relevant(p):
+        elif not p.gate_pass:
             p.reason = "failed relevance gate"
         elif cutoff is not None and p.score < cutoff:
             p.reason = f"score {p.score:.3f} below {cutoff}"
@@ -541,9 +675,11 @@ def judge(ranked: list[Paper], target: int, cutoff: float | None, fetch, assign_
 
 def curate(queries: list[str], candidates: int = config.CURATE_CANDIDATES, target: int = config.CURATE_TARGET_PDFS,
            download: bool = True, search: bool = True, save: bool = True, client: OpenAlexClient | None = None,
-           pubmed: PubMedClient | None = None, papers_dir: Path = config.PAPERS_DIR, manifest_path: Path = config.MANIFEST_PATH) -> list[Paper]:
+           pubmed: PubMedClient | None = None, papers_dir: Path = config.PAPERS_DIR, manifest_path: Path = config.MANIFEST_PATH,
+           audit_dir: Path | None = None) -> list[Paper]:
     """Judge new candidates (if `search`) and every manifest paper together. The manifest is written (if `save`)
-    only at the very end, so any error before that leaves the previous one in place."""
+    only at the very end, so any error before that leaves the previous one in place. Every gate decision, dry runs
+    included, goes to `audit_dir`/gate_audit_<date>.csv (default config.GATE_AUDIT_DIR)."""
     client, parser = client or OpenAlexClient(), PaperParser()
     old = manifest.load(manifest_path)
     known = [parser.parse(r) for r in client.fetch_known(old)]
@@ -569,6 +705,9 @@ def curate(queries: list[str], candidates: int = config.CURATE_CANDIDATES, targe
     records = sorted([p.to_record() for p in listed] + missing, key=lambda r: (not r["included"], -r.get("score", 0)))
     n_in = sum(r["included"] for r in records)
     print(f"Judged {len(papers)} papers, {attempts} download attempts. Included: {n_in}. Excluded: {len(records) - n_in}.")
+    audit = write_gate_audit(ranked, (audit_dir or config.GATE_AUDIT_DIR) / f"gate_audit_{date.today()}.csv")
+    n_pass = sum(bool(p.gate_pass) for p in ranked)
+    print(f"Relevance gate: {n_pass} passed, {len(ranked) - n_pass} rejected. Audit: {audit}")
     if not save:
         print("Dry run: manifest untouched.")
         return listed

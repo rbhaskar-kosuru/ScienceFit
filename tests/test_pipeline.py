@@ -198,10 +198,10 @@ def test_parser_collects_all_oa_pdf_links_best_first():
 def test_gate_and_design_match_whole_words_and_skip_negations():
     gate = curate.RelevanceFilter()
     text = lambda t: curate.Paper(**{**vars(paper("A", "d")), "text": t})
-    assert gate.apply([text("strength gains")]) and not gate.apply([text("strengthen the case")])
+    assert gate.apply([text("strength training gains")]) and not gate.apply([text("strengthening the case")])
     assert not gate.apply([text("endurance training and cognitive training")])  # 'training' alone isn't enough
-    assert not gate.apply([text("strength in knee osteoarthritis")])
-    assert not gate.apply([text("resistance training in diabetes")]) and gate.apply([text("non-clinical resistance training")])
+    assert not gate.apply([text("strength training in knee osteoarthritis")])
+    assert not gate.apply([text("resistance training in diabetic men")]) and gate.apply([text("clinical resistance training")])
     design = lambda text: (curate.keyword_design("", text),)
     assert design("a randomized trial")[0] == "rct"
     assert design("a non-randomized trial")[0] == "other"
