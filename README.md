@@ -107,16 +107,18 @@ tests/conftest.py        blanks .env settings, blocks the network
 tests/test_pipeline.py   curation, ingest, retrieval, citations
 tests/test_sections.py   section labels, second-hand flag
 tests/test_design.py     study design
+tests/test_gate.py       relevance gate, audit, population tag
+tests/test_sources.py    evidence labels on sources
 tests/test_llm.py        LLM client, prompts, eval output
 tests/test_secrets.py    no key in errors, output, logs or tracked files
 docs/                    configuration and API reference
 ```
 
-Run `pytest` (236 tests, no network). API keys live only in `.env` and are sent in headers; the tests scan the repo for anything key-shaped.
+Run `pytest` (302 tests, no network). API keys live only in `.env` and are sent in headers; the tests scan the repo for anything key-shaped.
 
 ## Limitations
 
-- A narrative review's summary of other studies can still be presented as its own finding.
+- A narrative review's summary of other studies can still be presented as its own finding; the UI labels narrative reviews, position stands and second-hand passages, but the answer text doesn't.
 - The library is small: 23 papers, open access only. Not medical advice.
 - The hosted model runs on a free tier with rate limits, and repeated runs differ even at temperature 0 with a seed.
 - Citation checks verify IDs, not claims. Claim verification is planned.
@@ -127,7 +129,6 @@ Run `pytest` (236 tests, no network). API keys live only in `.env` and are sent 
 ## Roadmap
 
 - Retrieval eval with more questions (recall, MRR) and exact vector search.
-- Second-hand label per source in the API.
 - Number check, as part of claim verification.
 - Rank penalty for second-hand passages, measured by the retrieval eval.
 - Conversation memory, then deployment.
