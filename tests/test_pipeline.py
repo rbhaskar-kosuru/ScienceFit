@@ -525,8 +525,9 @@ def test_validate_citations_checks_paper_ids_in_parentheses():
 def test_sources_list_each_chunks_section():
     rag = RAG(FakeStore([hit("a_2020", 0, section="results"), hit("a_2020", 3, section="introduction")]),
               FakeReranker([3.0, 2.0]), lambda s, p: "Yes [a_2020].")
-    assert rag.ask("How many sets?")["sources"][0]["chunks"] == [{"index": 0, "section": "results"},
-                                                                {"index": 3, "section": "introduction"}]
+    assert rag.ask("How many sets?")["sources"][0]["chunks"] == [
+        {"index": 0, "section": "results", "secondhand": False},
+        {"index": 3, "section": "introduction", "secondhand": False}]
 
 
 def test_smoke_check_flags_answers_cited_only_from_introductions():

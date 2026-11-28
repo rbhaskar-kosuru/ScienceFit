@@ -19,6 +19,7 @@ AUTHOR_CITATION = re.compile(r"[A-Z][\w'’-]+.*(?:\bet al\b|\b(?:19|20)\d{2}[a-
 NOT_CITATION = re.compile(r"[<>=%±]")  # statistics: [P < 0.05], [n = 12], [95% CI 1.1–2.3]
 SOURCE_FIELDS = ("title", "first_author", "year", "journal", "doi", "design", "curated")
 WORD = re.compile(r"[a-z0-9]+")
+LABELLED_DESIGNS = ("narrative_review", "position_stand")  # summarise other studies by design: labelled as such
 
 
 class RAG:
@@ -129,9 +130,20 @@ def sources(hits: list[dict], cited: set[str]) -> list[dict]:
             "relevance": h["relevance"],
             "chunks": [],
         })
-        src["chunks"].append({"index": h["chunk_index"], "section": h.get("section", "unknown")})
+        src["chunks"].append({"index": h["chunk_index"], "section": h.get("section", "unknown"),
+                              "secondhand": bool(h.get("secondhand", False))})
         src["relevance"] = max(src["relevance"], h["relevance"])
+    for src in by_paper.values():
+        src["evidence"] = evidence(src.get("design"))
+        src["secondhand_passage"] = src["evidence"] == "primary" and any(c["secondhand"] for c in src["chunks"])
     return sorted(by_paper.values(), key=lambda s: (not s["cited"], -s["relevance"]))
+
+
+def evidence(design: str | None) -> str:
+    """Paper-level label from the study design only, so one paper gets the same label in every answer:
+    "narrative_review", "position_stand", or "primary" (everything else, including meta-analyses and systematic
+    reviews, which pool data). Which passages were sent varies per answer: that is `secondhand_passage`."""
+    return design if design in LABELLED_DESIGNS else "primary"
 
 
 def cites_nothing(res: dict) -> bool:

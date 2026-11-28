@@ -20,11 +20,20 @@ def ask(question: str) -> dict:
                 "no_citations": False}
 
 
+EVIDENCE_LABELS = {"narrative_review": "narrative review", "position_stand": "position stand"}
+SECONDHAND_PASSAGE = "this passage retells other studies"
+
+
 def source_line(s: dict) -> str:
     title = s.get("title", s["paper_id"])
     link = f"[{title}]({s['doi']})" if s.get("doi") else title
     meta = " · ".join(str(x) for x in (s.get("year"), s.get("journal"), s.get("design")) if x)
     status = "**✓ cited**" if s["cited"] else "_retrieved, not cited_"
+    label = EVIDENCE_LABELS.get(s.get("evidence"))  # an older API without the fields: nothing
+    if not label and s.get("evidence") == "primary" and s.get("secondhand_passage"):
+        label = SECONDHAND_PASSAGE
+    if label:
+        status += f" · _{label}_"
     return f"- **[{s['paper_id']}]** {link}  \n  {meta} · relevance {s['relevance']:.2f} · {status}"
 
 
